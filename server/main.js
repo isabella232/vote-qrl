@@ -11,7 +11,6 @@ Meteor.startup(() => {
 Meteor.methods({
   getVoteStatus(address) {
     check(address, String);
-    console.log({address});
     const lookup = Votes.findOne({address});
     if (lookup) {
       if (lookup.status) {
@@ -20,7 +19,7 @@ Meteor.methods({
         return {code: 0, message: 'Eligible to vote, no ballot generation requested'}
       }
     } else {
-      return 'Address did not have QRL balance at [SNAPSHOT DATE]'
+      return {code: -1, message: 'Address did not have QRL balance at [SNAPSHOT DATE]'}
     }
   },
   csv(password, csv) {
