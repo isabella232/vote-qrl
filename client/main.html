@@ -1,0 +1,37 @@
+<head>
+  <title>Vote QRL</title>
+</head>
+
+<body>
+  <h1>Vote QRL</h1>
+  {{> vote}}
+  {{> info}}
+  {{> admin}}
+</body>
+
+<template name="vote">
+  {{#if qrlAddress}}
+    <p>{{qrlAddress}}</p>
+    <p>{{voteStatus}}</p>
+    <div>{{error}}</div>
+  {{else}}
+    QRL address <input type="text" id="inputtedAddress" value="Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d">
+    <button id="submit">Submit</button>
+    <div>{{error}}</div>
+  {{/if}}
+</template>
+
+<template name="info">
+  <h2>About</h2>
+  <p>
+    Instructions and documentation
+  </p>
+</template>
+
+<template name="admin">
+  <h2>Admin</h2>
+  Password: <input type="password" id="password" value="test">
+  <br /><br />
+  CSV<textarea id="csv" style="width: 100%; height: 100px;"></textarea>
+  <p><button id="upload">Upload</button></p>
+</template>
