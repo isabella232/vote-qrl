@@ -1,6 +1,8 @@
 import { Template } from 'meteor/templating';
 import { ReactiveVar } from 'meteor/reactive-var';
 import validate from '@theqrl/validate-qrl-address';
+import yaml from 'yaml';
+
 import './main.html';
 
 Template.vote.onCreated(function voteOnCreated() {
@@ -8,6 +10,19 @@ Template.vote.onCreated(function voteOnCreated() {
   this.qrlAddress = new ReactiveVar('');
   this.error = new ReactiveVar('');
   this.voteStatus = new ReactiveVar('');
+  this.activeVote = new ReactiveVar('loading...');
+  Meteor.call('getVoteInfo', (error, result) => {
+    console.log({ error, result });
+    if (!error) {
+      result.YAMLoptions = [];
+      result.options.forEach(element => {
+        console.log('element:', element);
+        result.YAMLoptions.push(yaml.stringify(element.data));
+      });
+      console.log('yaml', result.YAMLoptions);
+      this.activeVote.set(result)
+    }
+  });
 });
 
 Template.vote.helpers({
@@ -19,6 +34,9 @@ Template.vote.helpers({
   },
   voteStatus() {
     return Template.instance().voteStatus.get();
+  },
+  info() {
+    return Template.instance().activeVote.get();
   }
 });
 

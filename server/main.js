@@ -1,8 +1,42 @@
 import { Meteor } from 'meteor/meteor';
 import { Mongo } from 'meteor/mongo';
 import { check } from 'meteor/check';
+import { createHash } from 'crypto';
+import { stringify } from 'querystring';
+
+const sha512Truncated = function(data) {
+  const hash = createHash('sha512');
+  hash.update(data);
+  return hash.digest('hex').slice(0, 32);
+}
 
 const Votes = new Mongo.Collection('votes');
+
+const VOTE_ID_DATA = {
+  blockheight: 1230,
+  originator: 'hello world',
+  title: 'QIP15'
+}
+
+const OPTIONS = [
+  { data: {
+      vote: 'APPROVE QIP15'
+    },
+    hash: null
+  },
+  { data: {
+      vote: 'REJECT QIP15'
+    },
+    hash: null
+  }
+]
+
+OPTIONS.forEach((element, index) => {
+  OPTIONS[index].hash = sha512Truncated(JSON.stringify(element.data))
+});
+
+const VOTE_ID_HASH = sha512Truncated(JSON.stringify(VOTE_ID_DATA))
+console.log(VOTE_ID_HASH);
 
 Meteor.startup(() => {
   // code to run on server at startup
@@ -16,7 +50,7 @@ Meteor.methods({
       if (lookup.status) {
         return lookup.status
       } else {
-        return {code: 0, message: 'Eligible to vote, no ballot generation requested'}
+        return {code: 0, message: 'Eligible to vote, has not yet voted' }
       }
     } else {
       return {code: -1, message: 'Address did not have QRL balance at [SNAPSHOT DATE]'}
@@ -39,5 +73,8 @@ Meteor.methods({
       }
     });
     return {dupes, inserted}
+  },
+  getVoteInfo() {
+    return { id: VOTE_ID_DATA, hash: VOTE_ID_HASH, options: OPTIONS }
   }
 })

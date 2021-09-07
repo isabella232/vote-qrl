@@ -4,12 +4,22 @@
 
 <body>
   <h1>Vote QRL</h1>
-  {{> vote}}
   {{> info}}
+  {{> vote}}
   {{> admin}}
 </body>
 
 <template name="vote">
+  <h2>Vote</h2>
+  <blockquote>
+    Title: {{ info.id.title }}<br />
+    Originator: {{ info.id.originator }}<br />
+    Blockheight eligibility snapshot: {{ info.id.blockheight }}<br />
+    Options:<br />
+    {{ #each info.YAMLoptions }}
+      &nbsp;&nbsp;&nbsp;&nbsp; - {{{ this }}}<br />
+    {{ /each }}
+  </blockquote>
   {{#if qrlAddress}}
     <p>{{qrlAddress}}</p>
     <p>{{voteStatus}}</p>
