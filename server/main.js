@@ -13,9 +13,12 @@ const sha512Truncated = function(data) {
 const Votes = new Mongo.Collection('votes');
 
 const VOTE_ID_DATA = {
+  active: true,
   blockheight: 1230,
-  originator: 'hello world',
-  title: 'QIP15'
+  originator: 'The QRL Contributors',
+  voteAddress: 'Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d',
+  title: 'QIP15',
+  eligibility: 'Balance > 1 Quanta',
 }
 
 const OPTIONS = [
@@ -53,7 +56,7 @@ Meteor.methods({
         return {code: 0, message: 'Eligible to vote, has not yet voted' }
       }
     } else {
-      return {code: -1, message: 'Address did not have QRL balance at [SNAPSHOT DATE]'}
+      return {code: -1, message: `Address did not have QRL balance reaching the threshold to vote at blockheight ${VOTE_ID_DATA.blockheight}`}
     }
   },
   csv(password, csv) {

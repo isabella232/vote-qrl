@@ -10,25 +10,46 @@
 </body>
 
 <template name="vote">
-  <h2>Vote</h2>
-  <blockquote>
-    Title: {{ info.id.title }}<br />
-    Originator: {{ info.id.originator }}<br />
-    Blockheight eligibility snapshot: {{ info.id.blockheight }}<br />
-    Options:<br />
-    {{ #each info.YAMLoptions }}
-      &nbsp;&nbsp;&nbsp;&nbsp; - {{{ this }}}<br />
-    {{ /each }}
-  </blockquote>
-  {{#if qrlAddress}}
-    <p>{{qrlAddress}}</p>
-    <p>{{voteStatus}}</p>
-    <div>{{error}}</div>
-  {{else}}
-    QRL address <input type="text" id="inputtedAddress" value="Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d">
-    <button id="submit">Submit</button>
-    <div>{{error}}</div>
-  {{/if}}
+  {{ #if info.id.active }}
+    <h2>Vote</h2>
+    <blockquote>
+      Title: {{ info.id.title }}<br />
+      Originator: {{ info.id.originator }}<br />
+      Eligibility: {{ info.id.eligibility }}<br />
+      Blockheight of eligibility snapshot: {{ info.id.blockheight }}<br />
+      Options:<br />
+      {{ #each info.YAMLoptions }}
+        &nbsp;&nbsp;&nbsp;&nbsp; - {{{ this }}}<br />
+      {{ /each }}
+    </blockquote>
+    <h2>To vote</h2>
+    <table>
+      <tr>
+        {{ #each info.YAMLoptions }}
+          <td>Option {{ addOne @index }}<br />{{ this }}</td>
+        {{ /each }}
+      </tr>
+      <tr>
+        {{ #each info.options }}
+          <td>Send a Message tx to {{ info.id.voteAddress }} with message data:<br />
+          {{ this.hash }}
+          </td>
+        {{ /each }}
+      </tr>
+    </table>
+    <h2>Address status/eligibility check</h2>
+    {{ #if qrlAddress }}
+      <p>{{qrlAddress}}</p>
+      <p>{{voteStatus}}</p>
+      <div>{{error}}</div>
+    {{ else }}
+      QRL address <input type="text" id="inputtedAddress" value="Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d">
+      <button id="submit">Check</button>
+      <div>{{error}}</div>
+    {{ /if }}
+  {{ else }}
+  <h2>No active votes</h2>
+  {{ /if }}
 </template>
 
 <template name="info">

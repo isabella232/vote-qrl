@@ -37,7 +37,10 @@ Template.vote.helpers({
   },
   info() {
     return Template.instance().activeVote.get();
-  }
+  },
+  addOne(index) {
+    return index + 1;
+  },
 });
 
 Template.vote.events({
