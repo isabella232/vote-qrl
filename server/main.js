@@ -16,7 +16,7 @@ const Index = new Mongo.Collection('index');
 
 const VOTE_ID_DATA = {
   active: true,
-  blockheight: 812979,
+  blockheight: 812545,
   originator: 'The QRL Contributors',
   title: 'QIP15',
   eligibility: 'Balance > 1 Quanta',
@@ -56,8 +56,6 @@ Votes.find().forEach((element) => {
 console.log(`Snapshot total Quanta: ${quantaTotal}`);
 console.log(VOTE_ID_HASH);
 
-function checkBlock(block) {}
-
 function getBlock(block) {
   console.log('Requesting block: ' + block);
   axios
@@ -74,6 +72,21 @@ function getBlock(block) {
             if (element.tx.transactionType === 'message') {
               const message = Buffer.from(element.tx.message.message_hash).toString();
               console.log(`Message found: ${message}`);
+              if (message.slice(0,8).toLowerCase() === '0f0f0004' && message.length === 72) {
+                console.log('This is a valid vote message');
+                electionID = message.slice(8, 40);
+                choiceID = message.slice(42,72);
+                let matchThis = false;
+                OPTIONS.forEach(element => {
+                  if (element.hash === choiceID) {
+                    matchThis = true;
+                  }
+                });
+                if (matchThis && electionID === VOTE_ID_HASH) {
+                  console.log('Valid vote message is for active vote');
+                  // TODO: update this in DB
+                }
+              }
             }
           });
         }
