@@ -5,41 +5,44 @@ import { createHash } from 'crypto';
 import { stringify } from 'querystring';
 import axios from 'axios';
 
-const sha512Truncated = function(data) {
+const sha512Truncated = function (data) {
   const hash = createHash('sha512');
   hash.update(data);
   return hash.digest('hex').slice(0, 32);
-}
+};
 
 const Votes = new Mongo.Collection('votes');
 const Index = new Mongo.Collection('index');
 
 const VOTE_ID_DATA = {
   active: true,
-  blockheight: 812396,
+  blockheight: 812545,
   originator: 'The QRL Contributors',
   voteAddress: 'Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d',
   title: 'QIP15',
   eligibility: 'Balance > 1 Quanta',
-}
+};
 
 const OPTIONS = [
-  { data: {
-      vote: 'APPROVE QIP15'
+  {
+    data: {
+      vote: 'APPROVE QIP15',
     },
-    hash: null
+    hash: null,
   },
-  { data: {
-      vote: 'REJECT QIP15'
+  {
+    data: {
+      vote: 'REJECT QIP15',
     },
-    hash: null
+    hash: null,
   },
-  { data: {
-    vote: 'MAKE JACK PRESIDENT'
+  {
+    data: {
+      vote: 'MAKE JACK PRESIDENT',
+    },
+    hash: null,
   },
-  hash: null
-  }
-]
+];
 
 let CURRENT = 0;
 let INDEXING = false;
@@ -47,37 +50,38 @@ let clear = null;
 let indexInterval = null;
 
 OPTIONS.forEach((element, index) => {
-  OPTIONS[index].hash = sha512Truncated(JSON.stringify(element.data))
+  OPTIONS[index].hash = sha512Truncated(JSON.stringify(element.data));
 });
 
-const VOTE_ID_HASH = sha512Truncated(JSON.stringify(VOTE_ID_DATA))
+const VOTE_ID_HASH = sha512Truncated(JSON.stringify(VOTE_ID_DATA));
 
 let quantaTotal = 0;
-Votes.find().forEach(element => {
+Votes.find().forEach((element) => {
   quantaTotal += parseInt(element.snapshotBalance, 10);
-})
+});
 
 console.log(`Snapshot total Quanta: ${quantaTotal}`);
 console.log(VOTE_ID_HASH);
 
-function checkBlock(block) {
-
-}
+function checkBlock(block) {}
 
 function getBlock(block) {
   console.log('Requesting block: ' + block);
-    axios.post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {query: block.toString()}).then((response) => {
+  axios
+    .post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {
+      query: block.toString(),
+    })
+    .then((response) => {
       if (!response.data.found) {
         console.log('ERROR: Block ' + block + ' not found!');
       } else {
+        CURRENT += 1;
         if (response.data.block_extended.extended_transactions.length > 1) {
-          response.data.block_extended.extended_transactions.forEach(
-            (element) => {
-              if (element.tx.transactionType !== "coinbase") {
-                console.log(element);
-              }
+          response.data.block_extended.extended_transactions.forEach((element) => {
+            if (element.tx.transactionType !== 'coinbase') {
+              console.log(element);
             }
-          );
+          });
         }
       }
     });
@@ -85,35 +89,34 @@ function getBlock(block) {
 
 function indexBlocks(from) {
   if (INDEXING) {
-  axios
-    .get("https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetStats")
-    .then((response) => {
+    axios.get('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetStats').then((response) => {
       const to = parseInt(response.data.node_info.block_height);
       if (from === to) {
-        console.log("Parser up to date");
+        console.log('Parser up to date');
         INDEXING = false;
         return;
       }
-      console.log(`Parsing blocks ${from} - ${to}`);
       if (from > to) {
-        console.log("ERROR: parser height greater than current blockheight");
+        console.log('ERROR: parser height greater than current blockheight');
         Index.upsert({}, { block: to });
         INDEXING = false;
         return;
       }
       if (to > from) {
+        console.log(`Parsing blocks ${from} - ${to}`);
         CURRENT = from;
         indexInterval = Meteor.setInterval(function () {
-          getBlock(CURRENT);
-          Index.upsert({}, { block: CURRENT });
-          CURRENT += 1;
           if (CURRENT > to) {
             INDEXING = false;
+          } else {
+            getBlock(CURRENT);
+            Index.upsert({}, { block: CURRENT });
           }
         }, 5000);
         clear = Meteor.setInterval(function () {
           if (CURRENT > to) {
-            console.log("Block parsing complete");
+            INDEXING = false;
+            console.log('Block parsing complete');
             Meteor.clearInterval(indexInterval);
           }
         }, 5000);
@@ -122,15 +125,7 @@ function indexBlocks(from) {
       }
     });
   }
-  // console.log();
-  // Meteor.setTimeout(, 5000);
 }
-
-/* FIXME
-
-race when getting solitary block when up to date
-
-*/
 
 Meteor.startup(() => {
   // code to run on server at startup
@@ -141,7 +136,10 @@ Meteor.startup(() => {
     console.log(`Block parser cache is up to ${indexStatus.block} for vote starting at ${starting}`);
     starting = indexStatus.block;
   }
-  indexBlocks(indexStatus.block);
+  if (starting > indexStatus.block) {
+    Index.upsert({}, { block: starting });
+  }
+  indexBlocks(starting);
   // timer to check if indexing and restart if not
   Meteor.setInterval(() => {
     if (INDEXING === false) {
@@ -160,22 +158,25 @@ Meteor.startup(() => {
     } else {
       console.log('Indexing still underway');
     }
-  }, 5000);
+  }, 20000);
 });
 
 Meteor.methods({
   getVoteStatus(address) {
     check(address, String);
-    const lookup = Votes.findOne({address});
+    const lookup = Votes.findOne({ address });
     if (lookup) {
       if (lookup.status) {
-        return lookup.status
+        return lookup.status;
       } else {
         // should also check here if voted
-        return {code: 0, message: 'Eligible to vote, has not yet voted' }
+        return { code: 0, message: 'Eligible to vote, has not yet voted' };
       }
     } else {
-      return {code: -1, message: `Address did not have QRL balance reaching the threshold to vote at blockheight ${VOTE_ID_DATA.blockheight}`}
+      return {
+        code: -1,
+        message: `Address did not have QRL balance reaching the threshold to vote at blockheight ${VOTE_ID_DATA.blockheight}`,
+      };
     }
   },
   csv(password, csv) {
@@ -186,21 +187,21 @@ Meteor.methods({
     }
     let dupes = 0;
     let inserted = 0;
-    csv.forEach(element => {
-      if (Votes.findOne({address: element[0]})) {
+    csv.forEach((element) => {
+      if (Votes.findOne({ address: element[0] })) {
         dupes += 1;
       } else {
-        Votes.insert({address: element[0], snapshotBalance: element[1]});
+        Votes.insert({ address: element[0], snapshotBalance: element[1] });
         inserted += 1;
         quantaTotal += parseInt(element[1], 10);
       }
     });
-    return {dupes, inserted}
+    return { dupes, inserted };
   },
   getVoteInfo() {
-    return { id: VOTE_ID_DATA, hash: VOTE_ID_HASH, options: OPTIONS }
+    return { id: VOTE_ID_DATA, hash: VOTE_ID_HASH, options: OPTIONS };
   },
   quantaTotal() {
     return quantaTotal;
-  }
-})
+  },
+});
