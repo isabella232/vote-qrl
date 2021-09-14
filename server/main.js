@@ -16,9 +16,8 @@ const Index = new Mongo.Collection('index');
 
 const VOTE_ID_DATA = {
   active: true,
-  blockheight: 812545,
+  blockheight: 812979,
   originator: 'The QRL Contributors',
-  voteAddress: 'Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d',
   title: 'QIP15',
   eligibility: 'Balance > 1 Quanta',
 };
@@ -33,12 +32,6 @@ const OPTIONS = [
   {
     data: {
       vote: 'REJECT QIP15',
-    },
-    hash: null,
-  },
-  {
-    data: {
-      vote: 'MAKE JACK PRESIDENT',
     },
     hash: null,
   },
@@ -78,8 +71,9 @@ function getBlock(block) {
         CURRENT += 1;
         if (response.data.block_extended.extended_transactions.length > 1) {
           response.data.block_extended.extended_transactions.forEach((element) => {
-            if (element.tx.transactionType !== 'coinbase') {
-              console.log(element);
+            if (element.tx.transactionType === 'message') {
+              const message = Buffer.from(element.tx.message.message_hash).toString();
+              console.log(`Message found: ${message}`);
             }
           });
         }
@@ -131,7 +125,7 @@ Meteor.startup(() => {
   // code to run on server at startup
   INDEXING = true;
   let starting = VOTE_ID_DATA.blockheight;
-  const indexStatus = Index.findOne();
+  const indexStatus = Index.findOne() || {block: 0};
   if (indexStatus.block > starting) {
     console.log(`Block parser cache is up to ${indexStatus.block} for vote starting at ${starting}`);
     starting = indexStatus.block;

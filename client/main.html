@@ -31,8 +31,8 @@
       </tr>
       <tr>
         {{ #each info.options }}
-          <td>Send a Message tx to {{ info.id.voteAddress }} with message data:<br />
-          {{ this.hash }}
+          <td>Send a Message transaction with message data:<br />
+          0f0f0004{{ info.hash }}{{ this.hash }}
           </td>
         {{ /each }}
       </tr>
