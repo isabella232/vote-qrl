@@ -3,6 +3,7 @@ import { Mongo } from 'meteor/mongo';
 import { check } from 'meteor/check';
 import { createHash } from 'crypto';
 import { stringify } from 'querystring';
+import axios from 'axios';
 
 const sha512Truncated = function(data) {
   const hash = createHash('sha512');
@@ -11,10 +12,11 @@ const sha512Truncated = function(data) {
 }
 
 const Votes = new Mongo.Collection('votes');
+const Index = new Mongo.Collection('index');
 
 const VOTE_ID_DATA = {
   active: true,
-  blockheight: 1230,
+  blockheight: 812396,
   originator: 'The QRL Contributors',
   voteAddress: 'Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d',
   title: 'QIP15',
@@ -39,6 +41,11 @@ const OPTIONS = [
   }
 ]
 
+let CURRENT = 0;
+let INDEXING = false;
+let clear = null;
+let indexInterval = null;
+
 OPTIONS.forEach((element, index) => {
   OPTIONS[index].hash = sha512Truncated(JSON.stringify(element.data))
 });
@@ -51,11 +58,109 @@ Votes.find().forEach(element => {
 })
 
 console.log(`Snapshot total Quanta: ${quantaTotal}`);
-
 console.log(VOTE_ID_HASH);
+
+function checkBlock(block) {
+
+}
+
+function getBlock(block) {
+  console.log('Requesting block: ' + block);
+    axios.post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {query: block.toString()}).then((response) => {
+      if (!response.data.found) {
+        console.log('ERROR: Block ' + block + ' not found!');
+      } else {
+        if (response.data.block_extended.extended_transactions.length > 1) {
+          response.data.block_extended.extended_transactions.forEach(
+            (element) => {
+              if (element.tx.transactionType !== "coinbase") {
+                console.log(element);
+              }
+            }
+          );
+        }
+      }
+    });
+}
+
+function indexBlocks(from) {
+  if (INDEXING) {
+  axios
+    .get("https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetStats")
+    .then((response) => {
+      const to = parseInt(response.data.node_info.block_height);
+      if (from === to) {
+        console.log("Parser up to date");
+        INDEXING = false;
+        return;
+      }
+      console.log(`Parsing blocks ${from} - ${to}`);
+      if (from > to) {
+        console.log("ERROR: parser height greater than current blockheight");
+        Index.upsert({}, { block: to });
+        INDEXING = false;
+        return;
+      }
+      if (to > from) {
+        CURRENT = from;
+        indexInterval = Meteor.setInterval(function () {
+          getBlock(CURRENT);
+          Index.upsert({}, { block: CURRENT });
+          CURRENT += 1;
+          if (CURRENT > to) {
+            INDEXING = false;
+          }
+        }, 5000);
+        clear = Meteor.setInterval(function () {
+          if (CURRENT > to) {
+            console.log("Block parsing complete");
+            Meteor.clearInterval(indexInterval);
+          }
+        }, 5000);
+      } else {
+        INDEXING = false;
+      }
+    });
+  }
+  // console.log();
+  // Meteor.setTimeout(, 5000);
+}
+
+/* FIXME
+
+race when getting solitary block when up to date
+
+*/
 
 Meteor.startup(() => {
   // code to run on server at startup
+  INDEXING = true;
+  let starting = VOTE_ID_DATA.blockheight;
+  const indexStatus = Index.findOne();
+  if (indexStatus.block > starting) {
+    console.log(`Block parser cache is up to ${indexStatus.block} for vote starting at ${starting}`);
+    starting = indexStatus.block;
+  }
+  indexBlocks(indexStatus.block);
+  // timer to check if indexing and restart if not
+  Meteor.setInterval(() => {
+    if (INDEXING === false) {
+      Meteor.clearInterval(clear);
+      console.log('Rechecking indexing');
+      INDEXING = true;
+      const indexStatusLoop = Index.findOne();
+      if (indexStatusLoop.block > VOTE_ID_DATA.blockheight) {
+        console.log(
+          `Block parser cache is up to ${indexStatusLoop.block} for vote starting at ${VOTE_ID_DATA.blockheight}`
+        );
+        starting = indexStatusLoop.block;
+      }
+      CURRENT = starting;
+      indexBlocks(starting);
+    } else {
+      console.log('Indexing still underway');
+    }
+  }, 5000);
 });
 
 Meteor.methods({
