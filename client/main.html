@@ -47,6 +47,8 @@
       <button id="submit">Check</button>
       <div>{{error}}</div>
     {{ /if }}
+    <h2>Progress</h2>
+    {{ percentComplete }}% complete [{{quantaVoted}} / {{quantaTotal}}]
   {{ else }}
   <h2>No active votes</h2>
   {{ /if }}

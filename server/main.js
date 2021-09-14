@@ -31,6 +31,11 @@ const OPTIONS = [
       vote: 'REJECT QIP15'
     },
     hash: null
+  },
+  { data: {
+    vote: 'MAKE JACK PRESIDENT'
+  },
+  hash: null
   }
 ]
 
@@ -39,6 +44,14 @@ OPTIONS.forEach((element, index) => {
 });
 
 const VOTE_ID_HASH = sha512Truncated(JSON.stringify(VOTE_ID_DATA))
+
+let quantaTotal = 0;
+Votes.find().forEach(element => {
+  quantaTotal += parseInt(element.snapshotBalance, 10);
+})
+
+console.log(`Snapshot total Quanta: ${quantaTotal}`);
+
 console.log(VOTE_ID_HASH);
 
 Meteor.startup(() => {
@@ -53,6 +66,7 @@ Meteor.methods({
       if (lookup.status) {
         return lookup.status
       } else {
+        // should also check here if voted
         return {code: 0, message: 'Eligible to vote, has not yet voted' }
       }
     } else {
@@ -73,11 +87,15 @@ Meteor.methods({
       } else {
         Votes.insert({address: element[0], snapshotBalance: element[1]});
         inserted += 1;
+        quantaTotal += parseInt(element[1], 10);
       }
     });
     return {dupes, inserted}
   },
   getVoteInfo() {
     return { id: VOTE_ID_DATA, hash: VOTE_ID_HASH, options: OPTIONS }
+  },
+  quantaTotal() {
+    return quantaTotal;
   }
 })
