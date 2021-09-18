@@ -74,8 +74,9 @@ function getBlock(block) {
               console.log(`Message found: ${message}`);
               if (message.slice(0,8).toLowerCase() === '0f0f0004' && message.length === 72) {
                 console.log('This is a valid vote message');
-                electionID = message.slice(8, 40);
-                choiceID = message.slice(42,72);
+                const electionID = message.slice(8, 40);
+                const choiceID = message.slice(40,72);
+                console.log({electionID, choiceID});
                 let matchThis = false;
                 OPTIONS.forEach(element => {
                   if (element.hash === choiceID) {
@@ -84,7 +85,29 @@ function getBlock(block) {
                 });
                 if (matchThis && electionID === VOTE_ID_HASH) {
                   console.log('Valid vote message is for active vote');
+                  // TODO: check who from
+                  const txhash = Buffer.from(element.tx.transaction_hash).toString('hex');
+                  axios.post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {
+                    query: txhash
+                  })
+                  .then((txResponse) => {
+                    const voteFrom = 'Q' + Buffer.from(txResponse.data.transaction.addr_from).toString('hex');
+                    const lookup = Votes.findOne({ address: voteFrom });
+                    if (lookup) {
+                      if (lookup.status) {
+                        console.log('Vote from ' + voteFrom + ' has already been recorded')
+                      } else {
+                        console.log('Okay to record vote...')
+                        Votes.update({ address: voteFrom }, { $set: { status: choiceID } })
+                      }
+                    } else {
+                      console.log('Address ' + voteFrom + ' was not included in snapshot and is ineligible to vote');
+                    }
+                  // TODO: check not already voted
                   // TODO: update this in DB
+                  })
+                } else {
+                  console.log('Vote was for a different election (electionID hash does not match)');
                 }
               }
             }
@@ -191,6 +214,7 @@ Meteor.methods({
     check(csv, Array);
     if (password !== 'test') {
       throw new Meteor.Error('Bad password');
+      return;
     }
     let dupes = 0;
     let inserted = 0;
@@ -211,4 +235,26 @@ Meteor.methods({
   quantaTotal() {
     return quantaTotal;
   },
+  setCurrent(password, current) {
+    check(password, String);
+    check(current, Number);
+    if (password !== 'test') {
+      throw new Meteor.Error('Bad password');
+      return;
+    }
+    CURRENT = current;
+    Index.upsert({}, { block: current });
+    if (INDEXING) {
+      Meteor.clearInterval(indexInterval);
+      INDEXING = false;
+    }
+  },
+  getVotes(password) {
+    check(password, String);
+    if (password !== 'test') {
+      throw new Meteor.Error('Bad password');
+      return;
+    }
+    return Votes.find({}).fetch();
+  }
 });
