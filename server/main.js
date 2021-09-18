@@ -72,13 +72,13 @@ function getBlock(block) {
             if (element.tx.transactionType === 'message') {
               const message = Buffer.from(element.tx.message.message_hash).toString();
               console.log(`Message found: ${message}`);
-              if (message.slice(0,8).toLowerCase() === '0f0f0004' && message.length === 72) {
+              if (message.slice(0, 8).toLowerCase() === '0f0f0004' && message.length === 72) {
                 console.log('This is a valid vote message');
                 const electionID = message.slice(8, 40);
-                const choiceID = message.slice(40,72);
-                console.log({electionID, choiceID});
+                const choiceID = message.slice(40, 72);
+                console.log({ electionID, choiceID });
                 let matchThis = false;
-                OPTIONS.forEach(element => {
+                OPTIONS.forEach((element) => {
                   if (element.hash === choiceID) {
                     matchThis = true;
                   }
@@ -87,25 +87,27 @@ function getBlock(block) {
                   console.log('Valid vote message is for active vote');
                   // TODO: check who from
                   const txhash = Buffer.from(element.tx.transaction_hash).toString('hex');
-                  axios.post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {
-                    query: txhash
-                  })
-                  .then((txResponse) => {
-                    const voteFrom = 'Q' + Buffer.from(txResponse.data.transaction.addr_from).toString('hex');
-                    const lookup = Votes.findOne({ address: voteFrom });
-                    if (lookup) {
-                      if (lookup.status) {
-                        console.log('Vote from ' + voteFrom + ' has already been recorded')
+                  axios
+                    .post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {
+                      query: txhash,
+                    })
+                    .then((txResponse) => {
+                      const voteFrom = 'Q' + Buffer.from(txResponse.data.transaction.addr_from).toString('hex');
+                      const lookup = Votes.findOne({ address: voteFrom });
+                      if (lookup) {
+                        if (lookup.status) {
+                          console.log('Vote from ' + voteFrom + ' has already been recorded');
+                        } else {
+                          console.log('Okay to record vote...');
+                          Votes.update({ address: voteFrom }, { $set: { status: choiceID } });
+                          console.log('Vote recorded');
+                        }
                       } else {
-                        console.log('Okay to record vote...')
-                        Votes.update({ address: voteFrom }, { $set: { status: choiceID } })
+                        console.log('Address ' + voteFrom + ' was not included in snapshot and is ineligible to vote');
                       }
-                    } else {
-                      console.log('Address ' + voteFrom + ' was not included in snapshot and is ineligible to vote');
-                    }
-                  // TODO: check not already voted
-                  // TODO: update this in DB
-                  })
+                      // TODO: check not already voted
+                      // TODO: update this in DB
+                    });
                 } else {
                   console.log('Vote was for a different election (electionID hash does not match)');
                 }
@@ -161,7 +163,7 @@ Meteor.startup(() => {
   // code to run on server at startup
   INDEXING = true;
   let starting = VOTE_ID_DATA.blockheight;
-  const indexStatus = Index.findOne() || {block: 0};
+  const indexStatus = Index.findOne() || { block: 0 };
   if (indexStatus.block > starting) {
     console.log(`Block parser cache is up to ${indexStatus.block} for vote starting at ${starting}`);
     starting = indexStatus.block;
@@ -256,5 +258,5 @@ Meteor.methods({
       return;
     }
     return Votes.find({}).fetch();
-  }
+  },
 });
