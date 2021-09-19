@@ -12,6 +12,7 @@ Template.vote.onCreated(function voteOnCreated() {
   this.voteStatus = new ReactiveVar('');
   this.activeVote = new ReactiveVar('loading...');
   this.quantaTotal = new ReactiveVar('');
+  this.quantaVoted = new ReactiveVar('');
   Meteor.call('getVoteInfo', (error, result) => {
     console.log({ error, result });
     if (!error) {
@@ -29,6 +30,14 @@ Template.vote.onCreated(function voteOnCreated() {
       this.quantaTotal.set(result);
     } else {
       console.log('Error getting quantaTotal: ', error);
+    }
+  });
+  Meteor.call('quantaVoted', (error, result) => {
+    if (!error) {
+      console.log('Total voted: ' + result);
+      this.quantaVoted.set(result);
+    } else {
+      console.log('Error getting voted total', error);
     }
   });
 });
@@ -52,6 +61,18 @@ Template.vote.helpers({
   quantaTotal() {
     console.log('asked..');
     return Template.instance().quantaTotal.get();
+  },
+  quantaVoted() {
+    return Template.instance().quantaVoted.get();
+  },
+  percentComplete() {
+    const x = Template.instance().quantaVoted.get();
+    const y = Template.instance().quantaTotal.get();
+    try {
+      return (x / y * 100).toFixed(3);
+    } catch (e) {
+      return 0
+    }
   }
 });
 

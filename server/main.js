@@ -13,6 +13,7 @@ const sha512Truncated = function (data) {
 
 const Votes = new Mongo.Collection('votes');
 const Index = new Mongo.Collection('index');
+const Tally = new Mongo.Collection('tally');
 
 const VOTE_ID_DATA = {
   active: true,
@@ -49,9 +50,17 @@ OPTIONS.forEach((element, index) => {
 const VOTE_ID_HASH = sha512Truncated(JSON.stringify(VOTE_ID_DATA));
 
 let quantaTotal = 0;
-Votes.find().forEach((element) => {
-  quantaTotal += parseInt(element.snapshotBalance, 10);
-});
+const voteTally = Tally.findOne({});
+if (voteTally) {
+  console.log('Recalled total voting quanta');
+  quantaTotal = voteTally.quantaTotal
+} else {
+  Votes.find().forEach((element) => {
+    quantaTotal += parseInt(element.snapshotBalance, 10);
+  });
+  Tally.insert({quantaTotal, options: OPTIONS, voted: 0});
+  console.log('Stored voting quanta');
+}
 
 console.log(`Snapshot total Quanta: ${quantaTotal}`);
 console.log(VOTE_ID_HASH);
@@ -100,13 +109,14 @@ function getBlock(block) {
                         } else {
                           console.log('Okay to record vote...');
                           Votes.update({ address: voteFrom }, { $set: { status: choiceID } });
+                          console.log('Weight of vote: ' + lookup.snapshotBalance);
+                          const toInc = parseInt(lookup.snapshotBalance, 10);
+                          Tally.upsert({}, { $inc: { voted: toInc } });
                           console.log('Vote recorded');
                         }
                       } else {
                         console.log('Address ' + voteFrom + ' was not included in snapshot and is ineligible to vote');
                       }
-                      // TODO: check not already voted
-                      // TODO: update this in DB
                     });
                 } else {
                   console.log('Vote was for a different election (electionID hash does not match)');
@@ -229,6 +239,12 @@ Meteor.methods({
         quantaTotal += parseInt(element[1], 10);
       }
     });
+    console.log(`CSV results: [${inserted}] inserted, [${dupes}] dupes`);
+    Votes.find().forEach((element) => {
+      quantaTotal += parseInt(element.snapshotBalance, 10);
+    });
+    Tally.insert({ quantaTotal, options: OPTIONS });
+    console.log('Stored voting quanta');
     return { dupes, inserted };
   },
   getVoteInfo() {
@@ -236,6 +252,15 @@ Meteor.methods({
   },
   quantaTotal() {
     return quantaTotal;
+  },
+  quantaVoted() {
+    const tally = Tally.findOne({});
+    console.log(tally);
+    if (tally.voted) {
+      return tally.voted;
+    } else {
+      return 0;
+    }
   },
   setCurrent(password, current) {
     check(password, String);
