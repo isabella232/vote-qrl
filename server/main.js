@@ -21,6 +21,9 @@ const VOTE_ID_DATA = {
   originator: 'The QRL Contributors',
   title: 'QIP15',
   eligibility: 'Balance > 1 Quanta',
+  excluded: 'Exchanges & The QRL Foundation',
+  mechanics: 'Simple proportional vote',
+  expires: '>60% of eligible votes',
 };
 
 const OPTIONS = [

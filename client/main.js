@@ -69,7 +69,9 @@ Template.vote.helpers({
     const x = Template.instance().quantaVoted.get();
     const y = Template.instance().quantaTotal.get();
     try {
-      return (x / y * 100).toFixed(3);
+      const r = ((x / y) * 100).toFixed(3);
+      if (!isNaN(r)) { return r }
+      return 0
     } catch (e) {
       return 0
     }
@@ -87,6 +89,8 @@ Template.vote.events({
         if (error) {
           instance.error.set('Error checking vote status: ' + error.message);
         } else {
+          // check for match here
+          
           instance.voteStatus.set(result.message);
         }
       })
@@ -115,5 +119,12 @@ Template.admin.events({
         console.log({error, result});
       })
     }
+  },
+  'click #doJumpBlock' (event, instance) {
+    const password = document.getElementById('password').value;
+    const block = parseInt(document.getElementById('jumpBlock').value, 10);
+    Meteor.call('setCurrent', password, block, (error, result) => {
+      console.log({error, result});
+    });
   }
 })
