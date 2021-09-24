@@ -43,6 +43,8 @@ const OPTIONS = [
 
 let CURRENT = 0;
 let INDEXING = false;
+let COUNTS = [];
+let QUANTACOUNTS = [];
 let clear = null;
 let indexInterval = null;
 
@@ -67,6 +69,32 @@ if (voteTally) {
 
 console.log(`Snapshot total Quanta: ${quantaTotal}`);
 console.log(VOTE_ID_HASH);
+
+function doCount(options) {
+  const arr = [];
+  options.forEach(element => {
+    arr.push(Votes.find({ status: element.hash }).fetch().length);
+  })
+  return arr;
+}
+
+function doQuantaCount(options) {
+  const arr = [];
+  options.forEach((element) => {
+    const opt = Votes.find({ status: element.hash }).fetch();
+    let sum = 0
+    if (opt.length > 0) {
+      opt.forEach(addr => {
+        sum += parseInt(addr.snapshotBalance, 10)
+      });
+    }
+    arr.push(sum);
+  });
+  return arr;
+}
+
+COUNTS = doCount(OPTIONS);
+QUANTACOUNTS = doQuantaCount(OPTIONS);
 
 function getBlock(block) {
   console.log('Requesting block: ' + block);
@@ -115,7 +143,9 @@ function getBlock(block) {
                           console.log('Weight of vote: ' + lookup.snapshotBalance);
                           const toInc = parseInt(lookup.snapshotBalance, 10);
                           Tally.upsert({}, { $inc: { voted: toInc } });
-                          console.log('Vote recorded');
+                          COUNTS = doCount(OPTIONS);
+                          QUANTACOUNTS = doQuantaCount(OPTIONS)
+                          console.log('Vote recorded & count updated');
                         }
                       } else {
                         console.log('Address ' + voteFrom + ' was not included in snapshot and is ineligible to vote');
@@ -246,7 +276,7 @@ Meteor.methods({
     Votes.find().forEach((element) => {
       quantaTotal += parseInt(element.snapshotBalance, 10);
     });
-    Tally.insert({ quantaTotal, options: OPTIONS });
+    Tally.upsert({}, { quantaTotal, options: OPTIONS });
     console.log('Stored voting quanta');
     return { dupes, inserted };
   },
@@ -264,6 +294,12 @@ Meteor.methods({
     } else {
       return 0;
     }
+  },
+  counts() {
+    return COUNTS;
+  },
+  quantaCounts() {
+    return QUANTACOUNTS;
   },
   setCurrent(password, current) {
     check(password, String);

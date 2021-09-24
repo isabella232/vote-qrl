@@ -52,6 +52,10 @@
     {{ /if }}
     <h2>Progress</h2>
     {{ percentComplete }}% complete [{{quantaVoted}} / {{quantaTotal}}]
+    <br />
+    {{ #each info.YAMLoptions }}
+      {{ this }} - {{ votes @index }} votes ({{ quantaVotes @index }} Quanta)<br>
+    {{ /each }}
   {{ else }}
   <h2>No active votes</h2>
   {{ /if }}
