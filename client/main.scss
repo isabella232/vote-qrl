@@ -21,3 +21,10 @@ body {
   background-position: top -250px right -300px;
   background-clip: content-box;
 }
+.banner-title:after {
+  content: '';
+  display: block;
+  height: 5px;
+  width: 8.8rem;
+  background-color: #4AAFFF;
+}
