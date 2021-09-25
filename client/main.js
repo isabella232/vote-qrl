@@ -5,6 +5,68 @@ import yaml from 'yaml';
 
 import './main.html';
 
+const toggleAffix = (affixElement, scrollElement, wrapper) => {
+  const height = affixElement.outerHeight();
+  const top = wrapper.offset().top; // eslint-disable-line
+
+  if (scrollElement.scrollTop() >= top) {
+    wrapper.height(height);
+    affixElement.addClass('bg-white');
+  } else {
+    affixElement.removeClass('bg-white');
+    wrapper.height('auto');
+  }
+};
+
+/* use toggleAffix on any data-toggle="affix" elements */
+$('[data-toggle="bg-white"]').each(() => {
+  const ele = $(this);
+  const wrapper = $('<div></div>');
+
+  ele.before(wrapper);
+  $(window).on('scroll resize', () => {
+    toggleAffix(ele, $(this), wrapper);
+  });
+
+  toggleAffix(ele, $(window), wrapper);
+});
+
+$(window).scroll(() => {
+  if ($(document).scrollTop() > 80) {
+    $('.navbar').addClass('bg-white');
+    $('#navbar').animate(
+      { height: '120' },
+      {
+        queue: false,
+        duration: 500,
+      }
+    );
+    $('#navlogo').animate(
+      { height: '100' },
+      {
+        queue: false,
+        duration: 500,
+      }
+    );
+  } else {
+    $('.navbar').removeClass('bg-white');
+    $('#navbar').animate(
+      { height: '181' },
+      {
+        queue: false,
+        duration: 500,
+      }
+    );
+    $('#navlogo').animate(
+      { height: '165' },
+      {
+        queue: false,
+        duration: 500,
+      }
+    );
+  }
+});
+
 Template.vote.onCreated(function voteOnCreated() {
   // counter starts at 0
   this.qrlAddress = new ReactiveVar('');
@@ -19,12 +81,12 @@ Template.vote.onCreated(function voteOnCreated() {
     console.log({ error, result });
     if (!error) {
       result.YAMLoptions = [];
-      result.options.forEach(element => {
+      result.options.forEach((element) => {
         console.log('element:', element);
         result.YAMLoptions.push(yaml.stringify(element.data));
       });
       console.log('yaml', result.YAMLoptions);
-      this.activeVote.set(result)
+      this.activeVote.set(result);
     }
   });
   Meteor.call('quantaTotal', (error, result) => {
@@ -49,7 +111,7 @@ Template.vote.onCreated(function voteOnCreated() {
     } else {
       console.log('Error getting counts', error);
     }
-  })
+  });
   Meteor.call('quantaCounts', (error, result) => {
     if (!error) {
       console.log('Quanta Counts: ', result);
@@ -96,26 +158,28 @@ Template.vote.helpers({
     const y = Template.instance().quantaTotal.get();
     try {
       const r = ((x / y) * 100).toFixed(3);
-      if (!isNaN(r)) { return r }
-      return 0
+      if (!isNaN(r)) {
+        return r;
+      }
+      return 0;
     } catch (e) {
-      return 0
+      return 0;
     }
   },
   lessVote(text) {
-    return text.split('vote:')[1]
-  }
+    return text.split('vote:')[1];
+  },
 });
 
 Template.vote.events({
-  'click #submit' (event, instance) {
+  'click #submit'(event, instance) {
     event.preventDefault();
     const address = document.getElementById('inputtedAddress').value;
     if (validate.hexString(address).result) {
       instance.error.set('');
       instance.qrlAddress.set(address);
       Meteor.call('getVoteStatus', address, (error, result) => {
-        console.log({error, result});
+        console.log({ error, result });
         if (error) {
           instance.error.set('Error checking vote status: ' + error.message);
         } else {
@@ -123,7 +187,7 @@ Template.vote.events({
 
           instance.voteStatus.set(result.message);
         }
-      })
+      });
     } else {
       instance.error.set('Invalid QRL address');
     }
@@ -131,30 +195,30 @@ Template.vote.events({
 });
 
 Template.admin.events({
-  'click #upload' (event, instance) {
+  'click #upload'(event, instance) {
     const password = document.getElementById('password').value;
     let csv = document.getElementById('csv').value;
     csv = csv.split('\n');
     const filtered = [];
-    csv.forEach(element => {
+    csv.forEach((element) => {
       if (validate.hexString(element.split(',')[0]).result) {
         filtered.push(element.split(','));
       }
     });
     csv = filtered;
-    console.log({password, csv});
+    console.log({ password, csv });
     if (csv.length > 0) {
       console.log('Sending CSV to server...');
       Meteor.call('csv', password, csv, (error, result) => {
-        console.log({error, result});
-      })
+        console.log({ error, result });
+      });
     }
   },
-  'click #doJumpBlock' (event, instance) {
+  'click #doJumpBlock'(event, instance) {
     const password = document.getElementById('password').value;
     const block = parseInt(document.getElementById('jumpBlock').value, 10);
     Meteor.call('setCurrent', password, block, (error, result) => {
-      console.log({error, result});
+      console.log({ error, result });
     });
-  }
-})
+  },
+});
