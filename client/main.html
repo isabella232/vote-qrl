@@ -3,24 +3,17 @@
 </head>
 
 <body>
-  <div class="container">
-  <h1>Vote QRL</h1>
-  <div class="progress">
-            <div class="progress-bar" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-            <div class="progress-bar bg-success" role="progressbar" style="width: 30%" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100"></div>
-            <div class="progress-bar bg-info" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
-          </div>
-  {{> info}}
-  {{> vote}}
-  {{> admin}}
-</div>
+  <div class="container main-container">
+    <h1>Vote QRL</h1>
+    {{> info}} {{> vote}} {{> admin}}
+  </div>
 </body>
 
 <template name="vote">
   {{ #if info.id.active }}
-    
-    <div class="border p-3 border-primary mb-5">
-      <h2 class="display-3">Voting active</h2>
+
+  <div class="border p-3 border-primary mb-5">
+    <h2 class="display-3">Voting active</h2>
     <blockquote>
       Title: <strong>{{ info.id.title }}</strong><br />
       Originator: <strong>{{ info.id.originator }}</strong><br />
@@ -30,105 +23,113 @@
       Vote mechanics: <strong>{{ info.id.mechanics }}</strong><br />
       Vote expires: <strong>{{ info.id.expires }}</strong><br />
       Options:<br />
-      {{ #each info.YAMLoptions }}
-        &nbsp;&nbsp;&nbsp;&nbsp; - <strong>{{ lessVote this }}</strong><br />
+      {{ #each info.YAMLoptions }} &nbsp;&nbsp;&nbsp;&nbsp; - <strong>{{ lessVote this }}</strong><br />
       {{ /each }}
     </blockquote>
+  </div>
+  <h2>Voting options</h2>
+  <div class="row row-cols-1 row-cols-md-2 g-4">
+    {{ #each info.YAMLoptions }}
+    <div class="col">
+      <div class="card border-secondary mb-3">
+        <div class="card-header">Option {{ addOne @index }}</div>
+        <div class="card-body">
+          <h4 class="card-title text-secondary">{{ lessVote this }}</h4>
+          <p class="card-text">
+            Send a Message transaction with message data:<br />
+            <span class="text-black-50">0f0f0004{{ info.hash }}{{ readHash @index }}</span>
+          </p>
+        </div>
+      </div>
     </div>
-    <h2>Voting options</h2>
-    <div class="card border-secondary mb-3">
-            <div class="card-header">Vote option</div>
-            <div class="card-body">
-              <h4 class="card-title">secondary card title</h4>
-              <p class="card-text">Some quick example text to build on the card title and make up the bulk of the
-                card's content.</p>
-            </div>
-          </div>
-          <div class="card border-secondary mb-3">
-                  <div class="card-header">Vote option</div>
-                  <div class="card-body">
-                    <h4 class="card-title">Primary card title</h4>
-                    <p class="card-text">Some quick example text to build on the card title and make up the bulk of the
-                      card's content.</p>
-                  </div>
-                </div>
-    <table>
-      <tr>
-        {{ #each info.YAMLoptions }}
-          <td>Option {{ addOne @index }}<br />{{ this }}</td>
-        {{ /each }}
-      </tr>
-      <tr>
-        {{ #each info.options }}
-          <td>Send a Message transaction with message data:<br />
-          0f0f0004{{ info.hash }}{{ this.hash }}
-          </td>
-        {{ /each }}
-      </tr>
-    </table>
-    <h2>Address status/eligibility check</h2>
-    {{ #if qrlAddress }}
-      <p>{{qrlAddress}}</p>
-      <p>{{voteStatus}}</p>
-      <div>{{error}}</div>
-    {{ else }}
-    <form>
-      <div class="row align-items-center">
+    {{/each}}
+  </div>
+  <h2>Address status/eligibility check</h2>
+  {{ #if qrlAddress }}
+  <p>{{qrlAddress}}</p>
+  <p>{{voteStatus}}</p>
+  <div>{{error}}</div>
+  {{ else }}
+  <form>
+    <div class="row align-items-center">
       <div class="col-auto">
         <label for="inputtedAddress">QRL address</label>
       </div>
       <div class="col-md">
-        <input class="form-control" type="text" id="inputtedAddress" value="Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d">
+        <input
+          class="form-control"
+          type="text"
+          id="inputtedAddress"
+          value="Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d"
+        />
       </div>
       <div class="col-auto">
         <button class="btn btn-outline-primary" id="submit">Check</button>
       </div>
     </div>
-    </form>
-      <div>{{error}}</div>
-    {{ /if }}
-    <h2>Progress</h2>
-    {{ percentComplete }}% complete [{{quantaVoted}} / {{quantaTotal}}]
-    <br />
-    {{ #each info.YAMLoptions }}
-      {{ this }} - {{ votes @index }} votes ({{ quantaVotes @index }} Quanta)<br>
-    {{ /each }}
-  {{ else }}
+  </form>
+  <div>{{error}}</div>
+  {{ /if }}
+  <h2>Progress</h2>
+  <div class="progress">
+    <div
+      class="progress-bar"
+      role="progressbar"
+      style="width: 15%"
+      aria-valuenow="15"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    ></div>
+    <div
+      class="progress-bar bg-success"
+      role="progressbar"
+      style="width: 30%"
+      aria-valuenow="30"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    ></div>
+    <div
+      class="progress-bar bg-info"
+      role="progressbar"
+      style="width: 20%"
+      aria-valuenow="20"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    ></div>
+  </div>
+  {{ percentComplete }}% complete [{{quantaVoted}} / {{quantaTotal}}]
+  <br />
+  {{ #each info.YAMLoptions }} {{ this }} - {{ votes @index }} votes ({{ quantaVotes @index }} Quanta)<br />
+  {{ /each }} {{ else }}
   <h2>No active votes</h2>
   {{ /if }}
 </template>
 
 <template name="info">
   <h2>About</h2>
-  <p>
-    Instructions and documentation
-  </p>
+  <p>Instructions and documentation</p>
 </template>
 
 <template name="admin">
   <h2>Admin</h2>
   <div class="row align-items-center">
-      <div class="col-auto">
-        Password
-      </div>
-      <div class="col-auto">
-        <input class="form-control" type="password" id="password" value="test">
-      </div>
+    <div class="col-auto">Password</div>
+    <div class="col-auto">
+      <input class="form-control" type="password" id="password" value="test" />
     </div>
+  </div>
   <br /><br />
-    <div class="row align-items-center">
-      <div class="col-auto">
-        Jump to process block
-      </div>
-      <div class="col-auto">
-        <input class="form-control" type="number" id="jumpBlock" value="123456">
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-outline-primary" id="doJumpBlock">GO</button>
-      </div>
+  <div class="row align-items-center">
+    <div class="col-auto">Jump to process block</div>
+    <div class="col-auto">
+      <input class="form-control" type="number" id="jumpBlock" value="123456" />
     </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-primary" id="doJumpBlock">GO</button>
+    </div>
+  </div>
 
   <br /><br />
-  CSV<textarea id="csv" style="width: 100%; height: 100px;"></textarea>
+  CSV<textarea id="csv" style="width: 100%; height: 100px"></textarea>
   <p><button class="btn btn-outline-primary" id="upload">Upload</button></p>
 </template>

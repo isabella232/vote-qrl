@@ -76,8 +76,10 @@ Template.vote.helpers({
   addOne(index) {
     return index + 1;
   },
+  readHash(index) {
+    return Template.instance().activeVote.get().options[index].hash;
+  },
   quantaTotal() {
-    console.log('asked..');
     return Template.instance().quantaTotal.get();
   },
   quantaVoted() {
