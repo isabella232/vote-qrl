@@ -99,11 +99,15 @@ Template.vote.helpers({
     } catch (e) {
       return 0
     }
+  },
+  lessVote(text) {
+    return text.split('vote:')[1]
   }
 });
 
 Template.vote.events({
   'click #submit' (event, instance) {
+    event.preventDefault();
     const address = document.getElementById('inputtedAddress').value;
     if (validate.hexString(address).result) {
       instance.error.set('');
