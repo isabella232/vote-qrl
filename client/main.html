@@ -3,12 +3,12 @@
 </head>
 
 <body>
-  <nav class="navbar fixed-top d-flex justify-content-end">
-    <img src="yellow.svg">
-  </nav>
   <div class="container main-container mt-5">
+    <nav class="navbar fixed-top d-flex justify-content-end">
+      <nav-item><a href="https://theqrl.org"><img src="yellow.svg"></a></nav-item>
+    </nav>
     <h1 class="display-1 banner-title mb-2">Vote</h1>
-    <div class="text-muted mb-5">On-chain voting from <a href="https://theqrl.org">The Quantum Resistant Ledger</a></div>
+    <div class="text-muted mb-5">On-chain voting from <span class="text-primary">The Quantum Resistant Ledger</span></div>
     {{> info}} {{> vote}} {{> admin}}
   </div>
 </body>
