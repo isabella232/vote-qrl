@@ -48,6 +48,11 @@ $(window).scroll(() => {
         duration: 500,
       }
     );
+    if ($('#hiddenVote').hasClass('invisible')) {
+      $('#hiddenVote').hide();
+      $('#hiddenVote').removeClass('invisible');
+      $('#hiddenVote').show('slow');
+    }
   } else {
     $('.navbar').removeClass('bg-white');
     $('#navbar').animate(
@@ -64,6 +69,8 @@ $(window).scroll(() => {
         duration: 500,
       }
     );
+    $('#hiddenVote').hide();
+    $('#hiddenVote').addClass('invisible');
   }
 });
 
