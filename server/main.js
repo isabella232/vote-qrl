@@ -22,6 +22,8 @@ let ACTIVE = true;
 const VOTE_ID_DATA = Meteor.settings.vote;
 
 const OPTIONS = Meteor.settings.options;
+console.log('OPTIONS:');
+console.log(OPTIONS);
 
 let CURRENT = 0;
 let INDEXING = false;
