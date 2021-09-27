@@ -25,3 +25,4 @@ hot-module-replacement@0.3.0  # Update code in development without reloading the
 blaze-hot               # Update files using Blaze's API with HMR
 fourseven:scss
 seba:minifiers-autoprefixer
+session

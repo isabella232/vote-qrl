@@ -15,34 +15,13 @@ const Votes = new Mongo.Collection('votes');
 const Index = new Mongo.Collection('index');
 const Tally = new Mongo.Collection('tally');
 
-const adminPass = 'test';
+const { adminPass } = Meteor.settings;
 let ACTIVE = true;
 
 
-const VOTE_ID_DATA = {
-  blockheight: 812545,
-  originator: 'The QRL Contributors',
-  title: 'QIP15',
-  eligibility: 'Balance > 1 Quanta',
-  excluded: 'Exchanges & The QRL Foundation',
-  mechanics: 'Simple proportional vote',
-  expires: '>60% of eligible votes',
-};
+const VOTE_ID_DATA = Meteor.settings.vote;
 
-const OPTIONS = [
-  {
-    data: {
-      vote: 'APPROVE QIP15',
-    },
-    hash: null,
-  },
-  {
-    data: {
-      vote: 'REJECT QIP15',
-    },
-    hash: null,
-  },
-];
+const OPTIONS = Meteor.settings.options;
 
 let CURRENT = 0;
 let INDEXING = false;

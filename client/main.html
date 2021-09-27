@@ -18,7 +18,7 @@
       <nav-item><a href="https://theqrl.org"><img src="yellow.svg" height="120px"></a></nav-item>
     </nav>
     </div>
-    {{> info}} {{> vote}} {{> admin}}
+    {{ >main }}
   </div>
   <section class="mt-5 mb-5">
     <div class="container">
@@ -27,6 +27,21 @@
     </div>
   </section>
 </body>
+
+<template name="main">
+  {{ #if doLoadingCheck }}
+    <div class="d-flex justify-content-center">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+    <div class="d-none">
+      {{> info}} {{> vote}} {{> admin}}
+    </div>
+    {{ else }}
+      {{> info}} {{> vote}} {{> admin}}
+  {{ /if }}
+</template>
 
 <template name="vote">
   {{ #if votingActive }}

@@ -1,5 +1,5 @@
 import { Template } from 'meteor/templating';
-import { ReactiveVar } from 'meteor/reactive-var';
+import { Session } from 'meteor/session';
 import validate from '@theqrl/validate-qrl-address';
 import yaml from 'yaml';
 
@@ -74,17 +74,21 @@ $(window).scroll(() => {
   }
 });
 
+Template.main.onCreated(function mainOnCreated() {
+  Session.set('loadingCheck', 0);
+});
+
 Template.vote.onCreated(function voteOnCreated() {
   // counter starts at 0
-  this.qrlAddress = new ReactiveVar('');
-  this.error = new ReactiveVar('');
-  this.voteStatus = new ReactiveVar('');
-  this.activeVote = new ReactiveVar('loading...');
-  this.quantaTotal = new ReactiveVar('');
-  this.quantaVoted = new ReactiveVar('');
-  this.counts = new ReactiveVar([]);
-  this.votingActive = new ReactiveVar('');
-  this.quantaCounts = new ReactiveVar([]);
+  Session.set('qrlAddress', '');
+  Session.set('error', '');
+  Session.set('voteStatus', '');
+  Session.set('activeVote', '');
+  Session.set('quantaTotal', '');
+  Session.set('quantaVoted', '');
+  Session.set('counts', []);
+  Session.set('votingActive', '');
+  Session.set('quantaCounts', []);
   Meteor.call('getVoteInfo', (error, result) => {
     console.log({ error, result });
     if (!error) {
@@ -94,12 +98,15 @@ Template.vote.onCreated(function voteOnCreated() {
         result.YAMLoptions.push(yaml.stringify(element.data));
       });
       console.log('yaml', result.YAMLoptions);
-      this.activeVote.set(result);
+      Session.set('activeVote', result);
+      let lc = Session.get('loadingCheck');
+      lc += 1;
+      Session.set('loadingCheck', lc);
     }
   });
   Meteor.call('quantaTotal', (error, result) => {
     if (!error) {
-      this.quantaTotal.set(result);
+      Session.set('quantaTotal', result);
     } else {
       console.log('Error getting quantaTotal: ', error);
     }
@@ -107,7 +114,7 @@ Template.vote.onCreated(function voteOnCreated() {
   Meteor.call('quantaVoted', (error, result) => {
     if (!error) {
       console.log('Total voted: ' + result);
-      this.quantaVoted.set(result);
+      Session.set('quantaVoted', result);
     } else {
       console.log('Error getting voted total', error);
     }
@@ -115,7 +122,7 @@ Template.vote.onCreated(function voteOnCreated() {
   Meteor.call('counts', (error, result) => {
     if (!error) {
       console.log('Counts: ', result);
-      this.counts.set(result);
+      Session.set('counts', result);
     } else {
       console.log('Error getting counts', error);
     }
@@ -123,58 +130,72 @@ Template.vote.onCreated(function voteOnCreated() {
   Meteor.call('quantaCounts', (error, result) => {
     if (!error) {
       console.log('Quanta Counts: ', result);
-      this.quantaCounts.set(result);
+      Session.set('quantaCounts', result);
     } else {
       console.log('Error getting Quanta counts', error);
     }
   });
   Meteor.call('votingActive', (error, result) => {
     if (!error) {
-      this.votingActive.set(result);
+      Session.set('votingActive', result);
+      console.log(Blaze._parentData);
+      let lc = Session.get('loadingCheck');
+      lc += 1;
+      Session.set('loadingCheck', lc);
     } else {
       console.log('Error getting active vote status', error);
     }
-  })
+  });
+});
+
+Template.main.helpers({
+  doLoadingCheck() {
+    const lc = Session.get('loadingCheck');
+    console.log({ lc });
+    if (lc > 1) {
+      return false;
+    }
+    return true;
+  },
 });
 
 Template.vote.helpers({
   qrlAddress() {
-    return Template.instance().qrlAddress.get();
+    return Session.get('qrlAddress');
   },
   error() {
-    return Template.instance().error.get();
+    return Session.get('error');
   },
   voteStatus() {
-    return Template.instance().voteStatus.get();
+    return Session.get('voteStatus');
   },
   info() {
-    return Template.instance().activeVote.get();
+    return Session.get('activeVote');
   },
   addOne(index) {
     return index + 1;
   },
   readHash(index) {
-    return Template.instance().activeVote.get().options[index].hash;
+    return Session.get('activeVote').options[index].hash;
   },
   quantaTotal() {
-    return Template.instance().quantaTotal.get();
+    return Session.get('quantaTotal');
   },
   quantaVoted() {
-    return Template.instance().quantaVoted.get();
+    return Session.get('quantaVoted');
   },
   votingActive() {
-    console.log(Template.instance().votingActive.get());
-    return Template.instance().votingActive.get();
+    return Session.get('votingActive');
   },
   votes(index) {
-    return Template.instance().counts.get()[index];
+    return Session.get('counts')[index];
   },
   quantaVotes(index) {
-    return Template.instance().quantaCounts.get()[index];
+    return Session.get('quantaCounts')[index];
   },
   percentComplete() {
-    const x = Template.instance().quantaVoted.get();
-    const y = Template.instance().quantaTotal.get();
+    const x = Session.get('quantaVoted');
+    const y = Session.get('quantaTotal');
     try {
       const r = ((x / y) * 100).toFixed(3);
       if (!isNaN(r)) {
@@ -195,25 +216,25 @@ Template.vote.events({
     event.preventDefault();
     const address = document.getElementById('inputtedAddress').value;
     if (validate.hexString(address).result) {
-      instance.error.set('');
-      instance.qrlAddress.set(address);
+      Session.set('error', '');
+      Session.set('qrlAddress', address);
       Meteor.call('getVoteStatus', address, (error, result) => {
         console.log({ error, result });
         if (error) {
-          instance.error.set('Error checking vote status: ' + error.message);
+          Session.set('error', 'Error checking vote status: ' + error.message);
         } else {
-          instance.voteStatus.set(result.message);
+          Session.set('voteStatus', result.message);
         }
       });
     } else {
-      instance.error.set('Invalid QRL address');
+      Session.set('error', 'Invalid QRL address');
     }
   },
   'click #reset'(event, instance) {
     event.preventDefault();
-    instance.voteStatus.set('');
-    instance.error.set('');
-    instance.qrlAddress.set('');
+    Session.set('voteStatus', '');
+    Session.set('error', '');
+    Session.set('qrlAddress', '');
   },
 });
 
@@ -255,5 +276,5 @@ Template.admin.events({
     Meteor.call('activityUpdate', password, false, (error, result) => {
       console.log({ error, result });
     });
-  }
+  },
 });
