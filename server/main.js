@@ -15,8 +15,11 @@ const Votes = new Mongo.Collection('votes');
 const Index = new Mongo.Collection('index');
 const Tally = new Mongo.Collection('tally');
 
+const adminPass = 'test';
+let ACTIVE = true;
+
+
 const VOTE_ID_DATA = {
-  active: true,
   blockheight: 812545,
   originator: 'The QRL Contributors',
   title: 'QIP15',
@@ -237,12 +240,21 @@ Meteor.startup(() => {
 });
 
 Meteor.methods({
+  votingActive() {
+    return ACTIVE;
+  },
   getVoteStatus(address) {
     check(address, String);
     const lookup = Votes.findOne({ address });
     if (lookup) {
       if (lookup.status) {
-        return lookup.status;
+        let voteText = 'Invalid vote option recorded'
+        OPTIONS.forEach((element) => {
+          if (element.hash === lookup.status) {
+            voteText = `Vote successfully recorded: ${element.data.vote}`;
+          }
+        });
+        return { code: 1, message: voteText };
       } else {
         // should also check here if voted
         return { code: 0, message: 'Eligible to vote, has not yet voted' };
@@ -254,10 +266,14 @@ Meteor.methods({
       };
     }
   },
+  checkPass(password) {
+    check(password, String);
+    return (password === adminPass);
+  },
   csv(password, csv) {
     check(password, String);
     check(csv, Array);
-    if (password !== 'test') {
+    if (password !== adminPass) {
       throw new Meteor.Error('Bad password');
       return;
     }
@@ -288,7 +304,6 @@ Meteor.methods({
   },
   quantaVoted() {
     const tally = Tally.findOne({});
-    console.log(tally);
     if (tally.voted) {
       return tally.voted;
     } else {
@@ -304,7 +319,7 @@ Meteor.methods({
   setCurrent(password, current) {
     check(password, String);
     check(current, Number);
-    if (password !== 'test') {
+    if (password !== adminPass) {
       throw new Meteor.Error('Bad password');
       return;
     }
@@ -317,10 +332,19 @@ Meteor.methods({
   },
   getVotes(password) {
     check(password, String);
-    if (password !== 'test') {
+    if (password !== adminPass) {
       throw new Meteor.Error('Bad password');
       return;
     }
     return Votes.find({}).fetch();
   },
+  activityUpdate(password, bool) {
+    check(password, String);
+    check(bool, Boolean);
+    if (password !== adminPass) {
+      throw new Meteor.Error('Bad password');
+      return;
+    }
+    ACTIVE = bool;
+  }
 });

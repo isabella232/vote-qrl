@@ -3,19 +3,33 @@
 </head>
 
 <body>
-  <div class="container main-container mt-5">
-    <nav class="navbar fixed-top d-flex justify-content-end" id="navbar" data-toggle="bg-white">
-      <nav-item class="invisible" id="hiddenVote"><h1 class="display-1 banner-title mb-2">Vote</h1></nav-item>
-      <nav-item><a href="https://theqrl.org"><img src="yellow.svg" id="navlogo"></a></nav-item>
+  <div class="container main-container mt-5 mb-5">
+    <div class="d-none d-md-block">
+      <nav class="navbar fixed-top d-flex justify-content-end" id="navbar" data-toggle="bg-white">
+        <nav-item class="invisible" id="hiddenVote"><h1 class="display-1 banner-title mb-2">Vote</h1></nav-item>
+        <nav-item><a href="https://theqrl.org"><img src="yellow.svg" id="navlogo"></a></nav-item>
+      </nav>
+      <h1 class="display-1 banner-title mb-2">Vote</h1>
+      <div class="text-muted mb-5">On-chain voting from <span class="text-primary">The Quantum Resistant Ledger</span></div>
+    </div>
+    <div class="d-md-none">
+    <nav class="navbar">
+      <nav-item><h1 class="display-1 banner-title mb-2">Vote</h1></nav-item>
+      <nav-item><a href="https://theqrl.org"><img src="yellow.svg" height="120px"></a></nav-item>
     </nav>
-    <h1 class="display-1 banner-title mb-2">Vote</h1>
-    <div class="text-muted mb-5">On-chain voting from <span class="text-primary">The Quantum Resistant Ledger</span></div>
+    </div>
     {{> info}} {{> vote}} {{> admin}}
   </div>
+  <section class="mt-5 mb-5">
+    <div class="container">
+      &copy; The QRL Foundation 2021
+      <span class="text-black-50 float-end">MIT licensed open source software</span>
+    </div>
+  </section>
 </body>
 
 <template name="vote">
-  {{ #if info.id.active }}
+  {{ #if votingActive }}
 
   <div class="border p-3 border-primary mb-5">
     <h2 class="display-3">Voting active</h2>
@@ -33,7 +47,7 @@
     </blockquote>
   </div>
   <h2>Voting options</h2>
-  <div class="row row-cols-1 row-cols-md-2 g-4">
+  <div class="row row-cols-1 row-cols-md-2 g-4 mb-5">
     {{ #each info.YAMLoptions }}
     <div class="col">
       <div class="card border-secondary mb-3">
@@ -49,10 +63,32 @@
     </div>
     {{/each}}
   </div>
+  <section class="mb-5">
+    <h2>Progress</h2>
+    <div class="progress">
+      <div
+        class="progress-bar"
+        role="progressbar"
+        style="width: {{ percentComplete }}%"       aria-valuenow="{{ percentComplete }}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      ></div>
+    </div>
+    {{ percentComplete }}% complete [{{quantaVoted}} / {{quantaTotal}}]
+    <br />
+    {{ #each info.YAMLoptions }} {{ lessVote this }} - {{ votes @index }} votes ({{ quantaVotes @index }} Quanta)<br />
+    {{ /each }}
+  </section>
+  
+  {{ else }}
+  <h2 class="mb-5">No active votes</h2>
+  {{ /if }}
+  {{ #if votingActive }}
   <h2>Address status/eligibility check</h2>
   {{ #if qrlAddress }}
-  <p>{{qrlAddress}}</p>
+  <p class="wb-ba">{{qrlAddress}}</p>
   <p>{{voteStatus}}</p>
+  <button class="btn btn-outline-primary" id="reset">Reset</button>
   <div>{{error}}</div>
   {{ else }}
   <form>
@@ -65,8 +101,9 @@
           class="form-control"
           type="text"
           id="inputtedAddress"
-          value="Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d"
+          placeholder="Q010000000..."
         />
+        <!-- value="Q01050000d27c5ed754ad0d63944da0d365bfcdae250fcd4ffacab9aa79983db05aaf6ff42bc12d" -->
       </div>
       <div class="col-auto">
         <button class="btn btn-outline-primary" id="submit">Check</button>
@@ -75,66 +112,40 @@
   </form>
   <div>{{error}}</div>
   {{ /if }}
-  <h2>Progress</h2>
-  <div class="progress">
-    <div
-      class="progress-bar"
-      role="progressbar"
-      style="width: 15%"
-      aria-valuenow="15"
-      aria-valuemin="0"
-      aria-valuemax="100"
-    ></div>
-    <div
-      class="progress-bar bg-success"
-      role="progressbar"
-      style="width: 30%"
-      aria-valuenow="30"
-      aria-valuemin="0"
-      aria-valuemax="100"
-    ></div>
-    <div
-      class="progress-bar bg-info"
-      role="progressbar"
-      style="width: 20%"
-      aria-valuenow="20"
-      aria-valuemin="0"
-      aria-valuemax="100"
-    ></div>
-  </div>
-  {{ percentComplete }}% complete [{{quantaVoted}} / {{quantaTotal}}]
-  <br />
-  {{ #each info.YAMLoptions }} {{ this }} - {{ votes @index }} votes ({{ quantaVotes @index }} Quanta)<br />
-  {{ /each }} {{ else }}
-  <h2>No active votes</h2>
   {{ /if }}
 </template>
 
 <template name="info">
-  <h2>About</h2>
-  <p>Instructions and documentation</p>
+  <section class="mb-5">
+    <h2>Testnet community beta test</h2>
+    <p>Please refer to the instructions and documentation outlined in our <a href="#">introductory blog post.</a></p>
+  </section>
 </template>
 
 <template name="admin">
-  <h2>Admin</h2>
-  <div class="row align-items-center">
-    <div class="col-auto">Password</div>
-    <div class="col-auto">
-      <input class="form-control" type="password" id="password" value="test" />
+  <section class="d-none">
+    <h2 class="mt-5">Admin</h2>
+    <div class="row align-items-center">
+      <div class="col-auto">Password</div>
+      <div class="col-auto">
+        <input class="form-control" type="password" id="password" value="test" />
+      </div>
     </div>
-  </div>
-  <br /><br />
-  <div class="row align-items-center">
-    <div class="col-auto">Jump to process block</div>
-    <div class="col-auto">
-      <input class="form-control" type="number" id="jumpBlock" value="123456" />
+    <br /><br />
+    <div class="row align-items-center">
+      <div class="col-auto">Jump to process block</div>
+      <div class="col-auto">
+        <input class="form-control" type="number" id="jumpBlock" value="123456" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-primary" id="doJumpBlock">GO</button>
+      </div>
     </div>
-    <div class="col-auto">
-      <button class="btn btn-outline-primary" id="doJumpBlock">GO</button>
-    </div>
-  </div>
-
-  <br /><br />
-  CSV<textarea id="csv" style="width: 100%; height: 100px"></textarea>
-  <p><button class="btn btn-outline-primary" id="upload">Upload</button></p>
+    <br /><br />
+    CSV<textarea id="csv" style="width: 100%; height: 100px"></textarea>
+    <p><button class="btn btn-outline-primary" id="upload">Upload</button></p>
+    <br /><br />
+    <button class="btn btn-outline-primary" id="activate">Activate vote</button>
+    <button class="btn btn-outline-primary" id="deactivate">Deactivate vote</button>
+  </section>
 </template>

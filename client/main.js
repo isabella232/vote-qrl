@@ -32,7 +32,7 @@ $('[data-toggle="bg-white"]').each(() => {
 });
 
 $(window).scroll(() => {
-  if ($(document).scrollTop() > 80) {
+  if ($(document).scrollTop() > 80 && window.innerWidth > 767) {
     $('.navbar').addClass('bg-white');
     $('#navbar').animate(
       { height: '120' },
@@ -83,6 +83,7 @@ Template.vote.onCreated(function voteOnCreated() {
   this.quantaTotal = new ReactiveVar('');
   this.quantaVoted = new ReactiveVar('');
   this.counts = new ReactiveVar([]);
+  this.votingActive = new ReactiveVar('');
   this.quantaCounts = new ReactiveVar([]);
   Meteor.call('getVoteInfo', (error, result) => {
     console.log({ error, result });
@@ -127,6 +128,13 @@ Template.vote.onCreated(function voteOnCreated() {
       console.log('Error getting Quanta counts', error);
     }
   });
+  Meteor.call('votingActive', (error, result) => {
+    if (!error) {
+      this.votingActive.set(result);
+    } else {
+      console.log('Error getting active vote status', error);
+    }
+  })
 });
 
 Template.vote.helpers({
@@ -153,6 +161,10 @@ Template.vote.helpers({
   },
   quantaVoted() {
     return Template.instance().quantaVoted.get();
+  },
+  votingActive() {
+    console.log(Template.instance().votingActive.get());
+    return Template.instance().votingActive.get();
   },
   votes(index) {
     return Template.instance().counts.get()[index];
@@ -190,14 +202,18 @@ Template.vote.events({
         if (error) {
           instance.error.set('Error checking vote status: ' + error.message);
         } else {
-          // check for match here
-
           instance.voteStatus.set(result.message);
         }
       });
     } else {
       instance.error.set('Invalid QRL address');
     }
+  },
+  'click #reset'(event, instance) {
+    event.preventDefault();
+    instance.voteStatus.set('');
+    instance.error.set('');
+    instance.qrlAddress.set('');
   },
 });
 
@@ -228,4 +244,16 @@ Template.admin.events({
       console.log({ error, result });
     });
   },
+  'click #activate'(event, instance) {
+    const password = document.getElementById('password').value;
+    Meteor.call('activityUpdate', password, true, (error, result) => {
+      console.log({ error, result });
+    });
+  },
+  'click #deactivate'(event, instance) {
+    const password = document.getElementById('password').value;
+    Meteor.call('activityUpdate', password, false, (error, result) => {
+      console.log({ error, result });
+    });
+  }
 });
