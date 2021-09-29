@@ -266,14 +266,15 @@ Meteor.methods({
       } else {
         Votes.insert({ address: element[0], snapshotBalance: element[1] });
         inserted += 1;
-        quantaTotal += parseInt(element[1], 10);
       }
     });
     console.log(`CSV results: [${inserted}] inserted, [${dupes}] dupes`);
+    quantaTotal = 0;
     Votes.find().forEach((element) => {
       quantaTotal += parseInt(element.snapshotBalance, 10);
     });
-    Tally.upsert({}, { quantaTotal, options: OPTIONS });
+    const tally = Tally.findOne({});
+    Tally.upsert({}, { quantaTotal, options: OPTIONS, voted: tally.voted });
     console.log('Stored voting quanta');
     return { dupes, inserted };
   },
