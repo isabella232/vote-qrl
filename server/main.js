@@ -311,6 +311,16 @@ Meteor.methods({
       INDEXING = false;
     }
   },
+  clear(password) {
+    check(password, String);
+    if (password !== adminPass) {
+      throw new Meteor.Error('Bad password');
+      return;
+    }
+    Index.remove({});
+    Votes.remove({});
+    Tally.remove({});
+  },
   getVotes(password) {
     check(password, String);
     if (password !== adminPass) {
