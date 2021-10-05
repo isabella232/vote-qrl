@@ -105,6 +105,9 @@
   {{ #if qrlAddress }}
   <p class="wb-ba">{{qrlAddress}}</p>
   <p>{{voteStatus}}</p>
+  {{ #if txhash }}
+  <p><a href="https://testnet-explorer.theqrl.org/tx/{{txhash}}">View vote on QRL Explorer...</a></p>
+  {{/if}}
   <button class="btn btn-outline-primary" id="reset">Reset</button>
   <div>{{error}}</div>
   {{ else }}

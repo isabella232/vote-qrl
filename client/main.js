@@ -193,6 +193,9 @@ Template.vote.helpers({
   quantaVotes(index) {
     return Session.get('quantaCounts')[index];
   },
+  txhash() {
+    return Session.get('txhash');
+  },
   percentComplete() {
     const x = Session.get('quantaVoted');
     const y = Session.get('quantaTotal');
@@ -224,6 +227,7 @@ Template.vote.events({
           Session.set('error', 'Error checking vote status: ' + error.message);
         } else {
           Session.set('voteStatus', result.message);
+          Session.set('txhash', result.txhash);
         }
       });
     } else {
@@ -235,6 +239,7 @@ Template.vote.events({
     Session.set('voteStatus', '');
     Session.set('error', '');
     Session.set('qrlAddress', '');
+    Session.set('txhash', '');
   },
 });
 
