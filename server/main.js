@@ -355,5 +355,5 @@ Meteor.methods({
       return;
     }
     ACTIVE = bool;
-  }
+  },
 });

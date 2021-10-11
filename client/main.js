@@ -2,8 +2,20 @@ import { Template } from 'meteor/templating';
 import { Session } from 'meteor/session';
 import validate from '@theqrl/validate-qrl-address';
 import yaml from 'yaml';
+import { Chart, registerables } from 'chart.js';
 
 import './main.html';
+
+Chart.register(...registerables);
+
+function getColors(n) {
+  const contrasting = [
+    '#ffa729',
+    '#4aafff',
+    '#cbd7e6',
+  ];
+  return contrasting.slice(0, n);
+}
 
 const toggleAffix = (affixElement, scrollElement, wrapper) => {
   const height = affixElement.outerHeight();
@@ -78,6 +90,62 @@ Template.main.onCreated(function mainOnCreated() {
   Session.set('loadingCheck', 0);
 });
 
+Template.charts.onRendered(function () {
+const ctx = document.getElementById('myChart').getContext('2d');
+const counts = Session.get('quantaCounts');
+let total = 0
+counts.forEach((e,i) => {
+  total += counts[i];
+});
+const ds = [];
+counts.forEach((e,i) => {
+  ds.push(counts[i]/total*100);
+});
+console.log('Vote percents: ', ds);
+
+const YAML = Session.get('activeVote').YAMLoptions;
+console.log(YAML);
+// text.split('vote:')[1];
+const labels = [];
+YAML.forEach((e,i) => {
+  labels.push(YAML[i].split('vote:')[1]);
+})
+
+const colors = getColors(ds.length);
+
+const data = {
+  datasets: [
+    {
+      data: ds,
+      backgroundColor: colors
+    },
+  ],
+
+  // These labels appear in the legend and in the tooltips when hovering different arcs
+  labels: labels,
+};
+const config = {
+  type: 'doughnut',
+  data: data,
+  options: {
+    responsive: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      tooltip: {
+          callbacks: {
+              label: function(tooltipItem, data) {
+                  return tooltipItem.formattedValue + '%';
+              }
+          }
+      }
+    },
+  },
+};
+var myChart = new Chart(ctx, config);
+});
+
 Template.vote.onCreated(function voteOnCreated() {
   // counter starts at 0
   Session.set('qrlAddress', '');
@@ -138,7 +206,6 @@ Template.vote.onCreated(function voteOnCreated() {
   Meteor.call('votingActive', (error, result) => {
     if (!error) {
       Session.set('votingActive', result);
-      console.log(Blaze._parentData);
       let lc = Session.get('loadingCheck');
       lc += 1;
       Session.set('loadingCheck', lc);
