@@ -88,7 +88,7 @@ function getBlock(block) {
   try {
     console.log('Requesting block: ' + block);
     axios
-      .post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {
+      .post('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetObject', {
         query: block.toString(),
       })
       .then((response) => {
@@ -117,7 +117,7 @@ function getBlock(block) {
                     // TODO: check who from
                     const txhash = Buffer.from(element.tx.transaction_hash).toString('hex');
                     axios
-                      .post('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetObject', {
+                      .post('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetObject', {
                         query: txhash,
                       })
                       .then((txResponse) => {
@@ -160,7 +160,7 @@ function getBlock(block) {
 function indexBlocks(from) {
   try {
     if (INDEXING) {
-      axios.get('https://zeus-proxy.automated.theqrl.org/grpc/testnet/GetStats').then((response) => {
+      axios.get('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetStats').then((response) => {
         const to = parseInt(response.data.node_info.block_height);
         if (from === to) {
           console.log('Parser up to date');
