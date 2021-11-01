@@ -16,7 +16,7 @@ const Index = new Mongo.Collection('index');
 const Tally = new Mongo.Collection('tally');
 
 const { adminPass } = Meteor.settings;
-let ACTIVE = true;
+let ACTIVE = false;
 
 
 const VOTE_ID_DATA = Meteor.settings.vote;

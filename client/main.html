@@ -49,10 +49,11 @@
   {{ #if votingActive }}
 
   <div class="border p-3 border-primary mb-5">
-    <h2 class="display-3">Voting active</h2>
+    <h2 class="display-3">Voting is active</h2>
     <blockquote>
       Title: <strong>{{ info.id.title }}</strong><br />
-      Originator: <strong>{{ info.id.originator }}</strong><br />
+      Author: <strong>{{ info.id.author }}</strong><br />
+      Vote coordinator: <strong>{{ info.id.coordinator }}</strong><br />
       Eligibility: <strong>{{ info.id.eligibility }}</strong><br />
       Excluded: <strong>{{ info.id.excluded }}</strong><br />
       Blockheight of eligibility snapshot: <strong>{{ info.id.blockheight }}</strong><br />
@@ -106,7 +107,7 @@
   </section>
   
   {{ else }}
-  <h2 class="mb-5">No active votes</h2>
+  <h2 class="mb-5">Voting is not yet active</h2>
   {{ /if }}
   {{ #if votingActive }}
   <h2>Address status/eligibility check</h2>
@@ -114,7 +115,7 @@
   <p class="wb-ba">{{qrlAddress}}</p>
   <p>{{voteStatus}}</p>
   {{ #if txhash }}
-  <p><a href="https://testnet-explorer.theqrl.org/tx/{{txhash}}">View vote on QRL Explorer...</a></p>
+  <p><a href="https://explorer.theqrl.org/tx/{{txhash}}">View vote on QRL Explorer...</a></p>
   {{/if}}
   <button class="btn btn-outline-primary" id="reset">Reset</button>
   <div>{{error}}</div>
@@ -145,8 +146,8 @@
 
 <template name="info">
   <section class="mb-5">
-    <h2>Testnet community beta test</h2>
-    <p>Please refer to the instructions and documentation outlined in our <a href="https://www.theqrl.org/blog/decentralized-on-chain-voting-enters-public-testing/">introductory blog post.</a></p>
+    <h2>QIP Community Vote</h2>
+    <p>Please refer to the instructions and documentation outlined in our <a href="https://www.theqrl.org/blog/guide-to-voting-on-qip-016/">voting guide.</a></p>
   </section>
 </template>
 
