@@ -2,7 +2,6 @@ import { Meteor } from 'meteor/meteor';
 import { Mongo } from 'meteor/mongo';
 import { check } from 'meteor/check';
 import { createHash } from 'crypto';
-import { stringify } from 'querystring';
 import axios from 'axios';
 
 const sha512Truncated = function (data) {
@@ -16,7 +15,7 @@ const Index = new Mongo.Collection('index');
 const Tally = new Mongo.Collection('tally');
 
 const { adminPass } = Meteor.settings;
-let ACTIVE = false;
+let ACTIVE = true;
 
 
 const VOTE_ID_DATA = Meteor.settings.vote;
@@ -46,7 +45,7 @@ let quantaTotal = 0;
 const voteTally = Tally.findOne({});
 if (voteTally) {
   console.log('Recalled total voting quanta');
-  quantaTotal = voteTally.quantaTotal
+  quantaTotal = voteTally.quantaTotal;
 } else {
   Votes.find().forEach((element) => {
     quantaTotal += parseInt(element.snapshotBalance, 10);
@@ -62,7 +61,7 @@ function doCount(options) {
   const arr = [];
   options.forEach(element => {
     arr.push(Votes.find({ status: element.hash }).fetch().length);
-  })
+  });
   return arr;
 }
 
@@ -70,10 +69,10 @@ function doQuantaCount(options) {
   const arr = [];
   options.forEach((element) => {
     const opt = Votes.find({ status: element.hash }).fetch();
-    let sum = 0
+    let sum = 0;
     if (opt.length > 0) {
       opt.forEach(addr => {
-        sum += parseInt(addr.snapshotBalance, 10)
+        sum += parseInt(addr.snapshotBalance, 10);
       });
     }
     arr.push(sum);
@@ -86,6 +85,7 @@ QUANTACOUNTS = doQuantaCount(OPTIONS);
 
 function getBlock(block) {
   try {
+    INDEXING = true;
     console.log('Requesting block: ' + block);
     axios
       .post('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetObject', {
@@ -134,7 +134,7 @@ function getBlock(block) {
                             const toInc = parseInt(lookup.snapshotBalance, 10);
                             Tally.upsert({}, { $inc: { voted: toInc } });
                             COUNTS = doCount(OPTIONS);
-                            QUANTACOUNTS = doQuantaCount(OPTIONS)
+                            QUANTACOUNTS = doQuantaCount(OPTIONS);
                             console.log('Vote recorded & count updated');
                           }
                         } else {
@@ -150,52 +150,50 @@ function getBlock(block) {
           }
         }
       });
-    } catch (e) {
-      // error getting block - stop indexing & recheck later (timer) 
-      console.log('Error making API calls with block ' + block);
-      INDEXING = false;
-    }
+  } catch (e) {
+    // error getting block - stop indexing & recheck later (timer) 
+    console.log('Error making API calls with block ' + block);
+    INDEXING = false;
+  }
 }
 
 function indexBlocks(from) {
   try {
-    if (INDEXING) {
-      axios.get('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetStats').then((response) => {
-        const to = parseInt(response.data.node_info.block_height);
-        if (from === to) {
-          console.log('Parser up to date');
-          INDEXING = false;
-          return;
-        }
-        if (from > to) {
-          console.log('ERROR: parser height greater than current blockheight');
-          Index.upsert({}, { block: to });
-          INDEXING = false;
-          return;
-        }
-        if (to > from) {
-          console.log(`Parsing blocks ${from} - ${to}`);
-          CURRENT = from;
-          indexInterval = Meteor.setInterval(function () {
-            if (CURRENT > to) {
-              INDEXING = false;
-            } else {
-              getBlock(CURRENT);
-              Index.upsert({}, { block: CURRENT });
-            }
-          }, 5000);
-          clear = Meteor.setInterval(function () {
-            if (CURRENT > to) {
-              INDEXING = false;
-              console.log('Block parsing complete');
-              Meteor.clearInterval(indexInterval);
-            }
-          }, 5000);
-        } else {
-          INDEXING = false;
-        }
-      });
-    }
+    axios.get('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetStats').then((response) => {
+      const to = parseInt(response.data.node_info.block_height);
+      if (from === to) {
+        console.log('Parser up to date');
+        INDEXING = false;
+        return;
+      }
+      if (from > to) {
+        console.log('ERROR: parser height greater than current blockheight');
+        Index.upsert({}, { block: to });
+        INDEXING = false;
+        return;
+      }
+      if (to > from) {
+        console.log(`Parsing blocks ${from} - ${to}`);
+        CURRENT = from;
+        indexInterval = Meteor.setInterval(function () {
+          if (CURRENT > to) {
+            INDEXING = false;
+          } else {
+            getBlock(CURRENT);
+            Index.upsert({}, { block: CURRENT });
+          }
+        }, 5000);
+        clear = Meteor.setInterval(function () {
+          if (CURRENT > to) {
+            INDEXING = false;
+            console.log('Block parsing complete');
+            Meteor.clearInterval(indexInterval);
+          }
+        }, 5000);
+      } else {
+        INDEXING = false;
+      }
+    });
   } catch(e) {
     // error, defer indexing
     console.log('Error doing GetStats API call');
@@ -233,6 +231,7 @@ Meteor.startup(() => {
       indexBlocks(starting);
     } else {
       console.log('Indexing still underway');
+      INDEXING = false;
     }
   }, 20000);
 });
@@ -246,7 +245,7 @@ Meteor.methods({
     const lookup = Votes.findOne({ address });
     if (lookup) {
       if (lookup.status) {
-        let voteText = 'Invalid vote option recorded'
+        let voteText = 'Invalid vote option recorded';
         OPTIONS.forEach((element) => {
           if (element.hash === lookup.status) {
             voteText = `Vote successfully recorded: ${element.data.vote}`;
@@ -272,8 +271,7 @@ Meteor.methods({
     check(password, String);
     check(csv, Array);
     if (password !== adminPass) {
-      throw new Meteor.Error('Bad password');
-      return;
+      throw new Meteor.Error('Bad password');      
     }
     let dupes = 0;
     let inserted = 0;
@@ -319,8 +317,7 @@ Meteor.methods({
     check(password, String);
     check(current, Number);
     if (password !== adminPass) {
-      throw new Meteor.Error('Bad password');
-      return;
+      throw new Meteor.Error('Bad password');      
     }
     CURRENT = current;
     Index.upsert({}, { block: current });
@@ -332,8 +329,7 @@ Meteor.methods({
   clear(password) {
     check(password, String);
     if (password !== adminPass) {
-      throw new Meteor.Error('Bad password');
-      return;
+      throw new Meteor.Error('Bad password');      
     }
     Index.remove({});
     Votes.remove({});
@@ -342,8 +338,7 @@ Meteor.methods({
   getVotes(password) {
     check(password, String);
     if (password !== adminPass) {
-      throw new Meteor.Error('Bad password');
-      return;
+      throw new Meteor.Error('Bad password');      
     }
     return Votes.find({}).fetch();
   },
@@ -352,7 +347,6 @@ Meteor.methods({
     check(bool, Boolean);
     if (password !== adminPass) {
       throw new Meteor.Error('Bad password');
-      return;
     }
     ACTIVE = bool;
   },

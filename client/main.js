@@ -91,59 +91,59 @@ Template.main.onCreated(function mainOnCreated() {
 });
 
 Template.charts.onRendered(function () {
-const ctx = document.getElementById('myChart').getContext('2d');
-const counts = Session.get('quantaCounts');
-let total = 0
-counts.forEach((e,i) => {
-  total += counts[i];
-});
-const ds = [];
-counts.forEach((e,i) => {
-  ds.push(counts[i]/total*100);
-});
-console.log('Vote percents: ', ds);
+  const ctx = document.getElementById('myChart').getContext('2d');
+  const counts = Session.get('quantaCounts');
+  let total = 0;
+  counts.forEach((e,i) => {
+    total += counts[i];
+  });
+  const ds = [];
+  counts.forEach((e,i) => {
+    ds.push(counts[i]/total*100);
+  });
+  console.log('Vote percents: ', ds);
 
-const YAML = Session.get('activeVote').YAMLoptions;
-console.log(YAML);
-// text.split('vote:')[1];
-const labels = [];
-YAML.forEach((e,i) => {
-  labels.push(YAML[i].split('vote:')[1]);
-})
+  const YAML = Session.get('activeVote').YAMLoptions;
+  console.log(YAML);
+  // text.split('vote:')[1];
+  const labels = [];
+  YAML.forEach((e,i) => {
+    labels.push(YAML[i].split('vote:')[1]);
+  });
 
-const colors = getColors(ds.length);
+  const colors = getColors(ds.length);
 
-const data = {
-  datasets: [
-    {
-      data: ds,
-      backgroundColor: colors
-    },
-  ],
-
-  // These labels appear in the legend and in the tooltips when hovering different arcs
-  labels: labels,
-};
-const config = {
-  type: 'doughnut',
-  data: data,
-  options: {
-    responsive: false,
-    plugins: {
-      legend: {
-        position: 'top',
+  const data = {
+    datasets: [
+      {
+        data: ds,
+        backgroundColor: colors
       },
-      tooltip: {
+    ],
+
+    // These labels appear in the legend and in the tooltips when hovering different arcs
+    labels: labels,
+  };
+  const config = {
+    type: 'doughnut',
+    data: data,
+    options: {
+      responsive: false,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        tooltip: {
           callbacks: {
-              label: function(tooltipItem, data) {
-                  return tooltipItem.formattedValue + '%';
-              }
+            label: function(tooltipItem) {
+              return tooltipItem.formattedValue + '%';
+            }
           }
-      }
+        }
+      },
     },
-  },
-};
-var myChart = new Chart(ctx, config);
+  };
+  const resultsChart = new Chart(ctx, config); // eslint-disable-line no-unused-vars
 });
 
 Template.vote.onCreated(function voteOnCreated() {
@@ -282,7 +282,7 @@ Template.vote.helpers({
 });
 
 Template.vote.events({
-  'click #submit'(event, instance) {
+  'click #submit'(event) {
     event.preventDefault();
     const address = document.getElementById('inputtedAddress').value;
     if (validate.hexString(address).result) {
@@ -301,7 +301,7 @@ Template.vote.events({
       Session.set('error', 'Invalid QRL address');
     }
   },
-  'click #reset'(event, instance) {
+  'click #reset'(event) {
     event.preventDefault();
     Session.set('voteStatus', '');
     Session.set('error', '');
@@ -311,7 +311,7 @@ Template.vote.events({
 });
 
 Template.admin.events({
-  'click #upload'(event, instance) {
+  'click #upload'() {
     const password = document.getElementById('password').value;
     let csv = document.getElementById('csv').value;
     csv = csv.split('\n');
@@ -330,20 +330,20 @@ Template.admin.events({
       });
     }
   },
-  'click #doJumpBlock'(event, instance) {
+  'click #doJumpBlock'() {
     const password = document.getElementById('password').value;
     const block = parseInt(document.getElementById('jumpBlock').value, 10);
     Meteor.call('setCurrent', password, block, (error, result) => {
       console.log({ error, result });
     });
   },
-  'click #activate'(event, instance) {
+  'click #activate'() {
     const password = document.getElementById('password').value;
     Meteor.call('activityUpdate', password, true, (error, result) => {
       console.log({ error, result });
     });
   },
-  'click #deactivate'(event, instance) {
+  'click #deactivate'() {
     const password = document.getElementById('password').value;
     Meteor.call('activityUpdate', password, false, (error, result) => {
       console.log({ error, result });

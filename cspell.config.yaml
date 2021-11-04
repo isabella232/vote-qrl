@@ -1,0 +1,10 @@
+version: "0.2"
+ignorePaths:
+  - "**/package.json"
+dictionaryDefinitions: []
+dictionaries: []
+words: []
+ignoreWords:
+  - linebreak
+  - navlogo
+import: []
