@@ -85,7 +85,6 @@ QUANTACOUNTS = doQuantaCount(OPTIONS);
 
 function getBlock(block) {
   try {
-    INDEXING = true;
     console.log('Requesting block: ' + block);
     axios
       .post('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetObject', {
@@ -159,41 +158,43 @@ function getBlock(block) {
 
 function indexBlocks(from) {
   try {
-    axios.get('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetStats').then((response) => {
-      const to = parseInt(response.data.node_info.block_height);
-      if (from === to) {
-        console.log('Parser up to date');
-        INDEXING = false;
-        return;
-      }
-      if (from > to) {
-        console.log('ERROR: parser height greater than current blockheight');
-        Index.upsert({}, { block: to });
-        INDEXING = false;
-        return;
-      }
-      if (to > from) {
-        console.log(`Parsing blocks ${from} - ${to}`);
-        CURRENT = from;
-        indexInterval = Meteor.setInterval(function () {
-          if (CURRENT > to) {
-            INDEXING = false;
-          } else {
-            getBlock(CURRENT);
-            Index.upsert({}, { block: CURRENT });
-          }
-        }, 5000);
-        clear = Meteor.setInterval(function () {
-          if (CURRENT > to) {
-            INDEXING = false;
-            console.log('Block parsing complete');
-            Meteor.clearInterval(indexInterval);
-          }
-        }, 5000);
-      } else {
-        INDEXING = false;
-      }
-    });
+    if (INDEXING) {
+      axios.get('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetStats').then((response) => {
+        const to = parseInt(response.data.node_info.block_height);
+        if (from === to) {
+          console.log('Parser up to date');
+          INDEXING = false;
+          return;
+        }
+        if (from > to) {
+          console.log('ERROR: parser height greater than current blockheight');
+          Index.upsert({}, { block: to });
+          INDEXING = false;
+          return;
+        }
+        if (to > from) {
+          console.log(`Parsing blocks ${from} - ${to}`);
+          CURRENT = from;
+          indexInterval = Meteor.setInterval(function () {
+            if (CURRENT > to) {
+              INDEXING = false;
+            } else {
+              getBlock(CURRENT);
+              Index.upsert({}, { block: CURRENT });
+            }
+          }, 5000);
+          clear = Meteor.setInterval(function () {
+            if (CURRENT > to) {
+              INDEXING = false;
+              console.log('Block parsing complete');
+              Meteor.clearInterval(indexInterval);
+            }
+          }, 5000);
+        } else {
+          INDEXING = false;
+        }
+      });
+    }
   } catch(e) {
     // error, defer indexing
     console.log('Error doing GetStats API call');
@@ -231,7 +232,6 @@ Meteor.startup(() => {
       indexBlocks(starting);
     } else {
       console.log('Indexing still underway');
-      INDEXING = false;
     }
   }, 20000);
 });
