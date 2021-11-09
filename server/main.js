@@ -93,107 +93,168 @@ function getBlock(block) {
       .then((response) => {
         if (!response.data.found) {
           console.log('ERROR: Block ' + block + ' not found!');
+          Meteor.clearInterval(indexInterval);
+          INDEXING = false;
+          return false;
         } else {
           CURRENT += 1;
           if (response.data.block_extended.extended_transactions.length > 1) {
-            response.data.block_extended.extended_transactions.forEach((element) => {
-              if (element.tx.transactionType === 'message') {
-                const message = Buffer.from(element.tx.message.message_hash).toString();
-                console.log(`Message found: ${message}`);
-                if (message.slice(0, 8).toLowerCase() === '0f0f0004' && message.length === 72) {
-                  console.log('This is a valid vote message');
-                  const electionID = message.slice(8, 40);
-                  const choiceID = message.slice(40, 72);
-                  console.log({ electionID, choiceID });
-                  let matchThis = false;
-                  OPTIONS.forEach((element) => {
-                    if (element.hash === choiceID) {
-                      matchThis = true;
-                    }
-                  });
-                  if (matchThis && electionID === VOTE_ID_HASH) {
-                    console.log('Valid vote message is for active vote');
-                    // TODO: check who from
-                    const txhash = Buffer.from(element.tx.transaction_hash).toString('hex');
-                    axios
-                      .post('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetObject', {
-                        query: txhash,
-                      })
-                      .then((txResponse) => {
-                        const txhash = Buffer.from(txResponse.data.transaction.tx.transaction_hash).toString('hex');
-                        const voteFrom = 'Q' + Buffer.from(txResponse.data.transaction.addr_from).toString('hex');
-                        const lookup = Votes.findOne({ address: voteFrom });
-                        if (lookup) {
-                          if (lookup.status) {
-                            console.log('Vote from ' + voteFrom + ' has already been recorded');
-                          } else {
-                            console.log('Okay to record vote...');
-                            Votes.update({ address: voteFrom }, { $set: { status: choiceID, txHash: txhash } });
-                            console.log('Weight of vote: ' + lookup.snapshotBalance);
-                            const toInc = parseInt(lookup.snapshotBalance, 10);
-                            Tally.upsert({}, { $inc: { voted: toInc } });
-                            COUNTS = doCount(OPTIONS);
-                            QUANTACOUNTS = doQuantaCount(OPTIONS);
-                            console.log('Vote recorded & count updated');
+            response.data.block_extended.extended_transactions.forEach(
+              (element) => {
+                if (element.tx.transactionType === 'message') {
+                  const message = Buffer.from(
+                    element.tx.message.message_hash
+                  ).toString();
+                  console.log(`Message found: ${message}`);
+                  if (
+                    message.slice(0, 8).toLowerCase() === '0f0f0004' &&
+                    message.length === 72
+                  ) {
+                    console.log('This is a valid vote message');
+                    const electionID = message.slice(8, 40);
+                    const choiceID = message.slice(40, 72);
+                    console.log({ electionID, choiceID });
+                    let matchThis = false;
+                    OPTIONS.forEach((element) => {
+                      if (element.hash === choiceID) {
+                        matchThis = true;
+                      }
+                    });
+                    if (matchThis && electionID === VOTE_ID_HASH) {
+                      console.log('Valid vote message is for active vote');
+                      // TODO: check who from
+                      const txhash = Buffer.from(
+                        element.tx.transaction_hash
+                      ).toString('hex');
+                      axios
+                        .post(
+                          'https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetObject',
+                          {
+                            query: txhash,
                           }
-                        } else {
-                          console.log('Address ' + voteFrom + ' was not included in snapshot and is ineligible to vote');
-                        }
-                      });
-                  } else {
-                    console.log('Vote was for a different election (electionID hash does not match)');
+                        )
+                        .then((txResponse) => {
+                          const txhash = Buffer.from(
+                            txResponse.data.transaction.tx.transaction_hash
+                          ).toString('hex');
+                          const voteFrom =
+                            'Q' +
+                            Buffer.from(
+                              txResponse.data.transaction.addr_from
+                            ).toString('hex');
+                          const lookup = Votes.findOne({ address: voteFrom });
+                          if (lookup) {
+                            if (lookup.status) {
+                              console.log(
+                                'Vote from ' +
+                                  voteFrom +
+                                  ' has already been recorded'
+                              );
+                            } else {
+                              console.log('Okay to record vote...');
+                              Votes.update(
+                                { address: voteFrom },
+                                { $set: { status: choiceID, txHash: txhash } }
+                              );
+                              console.log(
+                                'Weight of vote: ' + lookup.snapshotBalance
+                              );
+                              const toInc = parseInt(
+                                lookup.snapshotBalance,
+                                10
+                              );
+                              Tally.upsert({}, { $inc: { voted: toInc } });
+                              COUNTS = doCount(OPTIONS);
+                              QUANTACOUNTS = doQuantaCount(OPTIONS);
+                              console.log('Vote recorded & count updated');
+                            }
+                          } else {
+                            console.log(
+                              'Address ' +
+                                voteFrom +
+                                ' was not included in snapshot and is ineligible to vote'
+                            );
+                          }
+                        })
+                        .catch((err) => {
+                          console.log('Error getting transaction: ' + err);
+                          INDEXING = false;
+                        });
+                    } else {
+                      console.log(
+                        'Vote was for a different election (electionID hash does not match)'
+                      );
+                    }
                   }
                 }
               }
-            });
+            );
           }
+          return true;
         }
+      })
+      .catch((err) => {
+        console.log('Error getting transaction: ' + err);
+        INDEXING = false;
+        Meteor.clearInterval(indexInterval);
+        return false;
       });
   } catch (e) {
     // error getting block - stop indexing & recheck later (timer) 
     console.log('Error making API calls with block ' + block);
     INDEXING = false;
+    Meteor.clearInterval(indexInterval);
+    return false;
   }
 }
 
 function indexBlocks(from) {
   try {
     if (INDEXING) {
-      axios.get('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetStats').then((response) => {
-        const to = parseInt(response.data.node_info.block_height);
-        if (from === to) {
-          console.log('Parser up to date');
+      axios
+        .get('https://zeus-proxy.automated.theqrl.org/grpc/mainnet/GetStats')
+        .then((response) => {
+          const to = parseInt(response.data.node_info.block_height);
+          if (from === to) {
+            console.log('Parser up to date');
+            INDEXING = false;
+            return;
+          }
+          if (from > to) {
+            console.log(
+              'ERROR: parser height greater than current blockheight'
+            );
+            Index.upsert({}, { block: to });
+            INDEXING = false;
+            return;
+          }
+          if (to > from) {
+            console.log(`Parsing blocks ${from} - ${to}`);
+            CURRENT = from;
+            indexInterval = Meteor.setInterval(function () {
+              if (CURRENT > to) {
+                INDEXING = false;
+              } else {
+                if (getBlock(CURRENT)) {
+                  Index.upsert({}, { block: CURRENT });
+                }
+              }
+            }, 5000);
+            clear = Meteor.setInterval(function () {
+              if (CURRENT > to) {
+                INDEXING = false;
+                console.log('Block parsing complete');
+                Meteor.clearInterval(indexInterval);
+              }
+            }, 5000);
+          } else {
+            INDEXING = false;
+          }
+        })
+        .catch((err) => {
+          console.log('Error getting transaction: ' + err);
           INDEXING = false;
-          return;
-        }
-        if (from > to) {
-          console.log('ERROR: parser height greater than current blockheight');
-          Index.upsert({}, { block: to });
-          INDEXING = false;
-          return;
-        }
-        if (to > from) {
-          console.log(`Parsing blocks ${from} - ${to}`);
-          CURRENT = from;
-          indexInterval = Meteor.setInterval(function () {
-            if (CURRENT > to) {
-              INDEXING = false;
-            } else {
-              getBlock(CURRENT);
-              Index.upsert({}, { block: CURRENT });
-            }
-          }, 5000);
-          clear = Meteor.setInterval(function () {
-            if (CURRENT > to) {
-              INDEXING = false;
-              console.log('Block parsing complete');
-              Meteor.clearInterval(indexInterval);
-            }
-          }, 5000);
-        } else {
-          INDEXING = false;
-        }
-      });
+        });
     }
   } catch(e) {
     // error, defer indexing
@@ -204,7 +265,7 @@ function indexBlocks(from) {
 
 Meteor.startup(() => {
   // code to run on server at startup
-  INDEXING = true;
+  INDEXING = false;
   let starting = VOTE_ID_DATA.blockheight;
   const indexStatus = Index.findOne() || { block: 0 };
   if (indexStatus.block > starting) {
@@ -214,7 +275,6 @@ Meteor.startup(() => {
   if (starting > indexStatus.block) {
     Index.upsert({}, { block: starting });
   }
-  indexBlocks(starting);
   // timer to check if indexing and restart if not
   Meteor.setInterval(() => {
     if (INDEXING === false) {
