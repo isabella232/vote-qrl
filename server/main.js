@@ -97,7 +97,6 @@ function getBlock(block) {
           INDEXING = false;
           return false;
         } else {
-          CURRENT += 1;
           if (response.data.block_extended.extended_transactions.length > 1) {
             response.data.block_extended.extended_transactions.forEach(
               (element) => {
@@ -190,21 +189,19 @@ function getBlock(block) {
               }
             );
           }
-          return true;
+          CURRENT += 1;
         }
       })
       .catch((err) => {
         console.log('Error getting transaction: ' + err);
         INDEXING = false;
         Meteor.clearInterval(indexInterval);
-        return false;
       });
   } catch (e) {
     // error getting block - stop indexing & recheck later (timer) 
     console.log('Error making API calls with block ' + block);
     INDEXING = false;
     Meteor.clearInterval(indexInterval);
-    return false;
   }
 }
 
@@ -254,12 +251,14 @@ function indexBlocks(from) {
         .catch((err) => {
           console.log('Error getting transaction: ' + err);
           INDEXING = false;
+          Meteor.clearInterval(indexInterval);
         });
     }
   } catch(e) {
     // error, defer indexing
     console.log('Error doing GetStats API call');
     INDEXING = false;
+    Meteor.clearInterval(indexInterval);
   }
 }
 
